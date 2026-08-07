@@ -208,3 +208,31 @@ class AuditLog(TimeStampedModel):
 
     def __str__(self):
         return f"{self.action} on {self.entity}#{self.entity_id}"
+
+
+# ---------------------------------------------------------------- إعدادات المنصة
+
+
+class PlatformSettings(TimeStampedModel):
+    """
+    إعدادات المنصة العامة (صف واحد) — يتحكم بها الأدمن حصراً.
+
+    - free_mode: الوضع المجاني (الجزء 18) — كل شيء مفتوح بلا باقات.
+    - self_registration_enabled: مفتاح التسجيل الذاتي للمكاتب الكبيرة
+      (المشهد 6: الزر موجود لكنه معطّل افتراضياً).
+    """
+
+    free_mode = models.BooleanField("الوضع المجاني", default=True)
+    self_registration_enabled = models.BooleanField("التسجيل الذاتي مفعّل", default=False)
+
+    class Meta:
+        verbose_name = "إعدادات المنصة"
+        verbose_name_plural = "إعدادات المنصة"
+
+    def __str__(self):
+        return "إعدادات المنصة"
+
+    @classmethod
+    def load(cls) -> "PlatformSettings":
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
