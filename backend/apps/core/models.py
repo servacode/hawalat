@@ -76,9 +76,15 @@ class Account(TenantScopedModel):
     """
     حساب في دفتر الأستاذ — لكل (كيان × عملة) حساب واحد.
 
-    اصطلاح الرصيد (من الدورة التشغيلية §0):
-        balance = مجموع الدائن − مجموع المدين  (credit − debit)
-        موجب = «له»، سالب = «عليه» من منظور المكتب الكبير.
+    اصطلاح الرصيد (مضبوط على سرد الدورة التشغيلية):
+        balance = مجموع المدين − مجموع الدائن  (debit − credit)
+
+    الدلالة حسب نوع الحساب:
+    - حساب مكتب صغير:  موجب = «عليه» (مدين لنا)، سالب = «له».
+    - صندوق وسيط/محل:  موجب = رصيدنا الموجود فيه، سالب = «علينا له».
+      (الاعتماد/الإيداع يزيده، وتمرير الحركة ينقصه — كما في المشهدين 2 و5.)
+    - حساب أرباح الأجور (دخل): يتراكم دائناً — يُعرض في التقارير معكوساً
+      (credit − debit) ليظهر الربح موجباً.
     """
 
     class Kind(models.TextChoices):
@@ -111,7 +117,14 @@ class Account(TenantScopedModel):
             debit=models.Sum("debit", default=0),
             credit=models.Sum("credit", default=0),
         )
-        return agg["credit"] - agg["debit"]
+        return agg["debit"] - agg["credit"]
+
+    @property
+    def display_balance(self):
+        """رصيد العرض: حسابات الدخل (الأرباح) تُعرض معكوسة لتظهر موجبة."""
+        if self.kind == self.Kind.FEES_PROFIT:
+            return -self.balance
+        return self.balance
 
 
 class JournalEntry(TenantScopedModel):

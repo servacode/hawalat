@@ -73,27 +73,45 @@ class LedgerEngineTests(TestCase):
         self.profit = make_account(self.t, "أرباح", Account.Kind.FEES_PROFIT)
 
     def _post_scene2_entry(self):
-        """مثال الدورة §4-أ: مبلغ 1000، رأس مال 10، مستحقة 15 → ربح 5."""
+        """مثال الدورة §4-أ: مبلغ 1000، رأس مال 10، مستحقة 15 → ربح 5.
+
+        القيد القياسي: مدين الصغير 1015 / دائن الصندوق 1010 / دائن الربح 5.
+        """
         return post_entry(
             tenant=self.t,
             entry_type=JournalEntry.EntryType.TRANSACTION,
             memo="قبول حوالة HW-1",
             lines=[
-                (self.small, D("1015"), D("0")),  # الصغير عليه 1015
-                (self.box, D("0"), D("1010")),  # الوسيط له 1010
-                (self.profit, D("0"), D("5")),  # الربح 5
+                (self.small, D("1015"), D("0")),  # الصغير يصبح عليه 1015
+                (self.box, D("0"), D("1010")),  # الصندوق ينقص 1010 (سحبنا منه)
+                (self.profit, D("0"), D("5")),  # الربح 5 (دخل دائن)
             ],
         )
 
     def test_balanced_entry_posts_and_balances_match_ops_doc(self):
         self._post_scene2_entry()
-        # الاصطلاح: balance = دائن − مدين
-        self.assertEqual(self.small.balance, D("-1015"))  # عليه
-        self.assertEqual(self.box.balance, D("1010"))  # له
-        self.assertEqual(self.profit.balance, D("5"))  # الربح
+        # الاصطلاح: balance = مدين − دائن
+        self.assertEqual(self.small.balance, D("1015"))  # موجب = عليه
+        self.assertEqual(self.box.balance, D("-1010"))  # الصندوق نقص (علينا له)
+        self.assertEqual(self.profit.balance, D("-5"))  # دخل دائن
+        self.assertEqual(self.profit.display_balance, D("5"))  # يُعرض موجباً
         # توازن كلي: مجموع الأرصدة صفر
         total = self.small.balance + self.box.balance + self.profit.balance
         self.assertEqual(total, D("0"))
+
+    def test_deposit_then_transfer_box_decreases_like_story(self):
+        """المشهد 5 ثم 2: إيداع 2000 في الوعد ثم تمرير 1010 → الرصيد 990."""
+        post_entry(
+            tenant=self.t,
+            entry_type=JournalEntry.EntryType.SETTLEMENT,
+            memo="اعتماد باسم مكتب حلب",
+            lines=[(self.box, D("2000"), D("0")), (self.small, D("0"), D("2000"))],
+        )
+        self.assertEqual(self.box.balance, D("2000"))  # الإيداع زاد الصندوق
+        self.assertEqual(self.small.balance, D("-2000"))  # الصغير له (دفع مقدماً)
+        self._post_scene2_entry()
+        self.assertEqual(self.box.balance, D("990"))  # الحركة أنقصت الصندوق
+        self.assertEqual(self.small.balance, D("-985"))  # 1015 عليه − 2000 له
 
     def test_unbalanced_entry_rejected(self):
         with self.assertRaises(ValidationError):
