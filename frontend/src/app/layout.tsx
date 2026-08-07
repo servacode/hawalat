@@ -12,6 +12,12 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: "حوالات",
   description: "نظام محاسبي لإدارة الحوالات المالية بين المكاتب",
+  manifest: "/manifest.json",
+  icons: { icon: "/icon.svg" },
+};
+
+export const viewport = {
+  themeColor: "#0d9488",
 };
 
 export default function RootLayout({

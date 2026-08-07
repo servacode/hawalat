@@ -1,52 +1,129 @@
 @import "tailwindcss";
 
 /*
-  حوالات — طبقة التوكِنز المركزية (المرحلة 0: الأساس)
-  =====================================================
-  المصدر الوحيد للألوان والخطوط. التفصيل الكامل يُبنى في المرحلة 1
-  وفق docs/04-visual-identity.md — لا ألوان يدوية خارج هذه الطبقة.
+  حوالات — طبقة التوكِنز المركزية الكاملة (ق1)
+  ================================================
+  المصدر الوحيد لكل لون/خط/حجم/ظل في الواجهة — وفق docs/04-visual-identity.md.
+  ممنوع كتابة hex أو حجم يدوي داخل أي مكوّن أو صفحة.
+  الوضعان فاتح/داكن من نفس التوكِنز (ق6).
 */
 
 :root {
-  /* الوضع الفاتح */
+  /* ── لون العلامة (Teal) ─────────────────────────── */
+  --brand-50: #ecfdf5;
+  --brand-100: #d1fae5;
+  --brand-200: #a7f3d0;
+  --brand-300: #6ee7b7;
+  --brand-400: #34d399;
+  --brand-500: #10b981;
   --brand-600: #0d9488;
   --brand-700: #0f766e;
+  --brand-800: #115e59;
+  --brand-900: #134e4a;
+
+  /* ── لمسة الإبراز (ذهبي) ────────────────────────── */
   --accent: #c79a3a;
+  --accent-soft: #f5ead1;
+
+  /* ── الألوان الدلالية ───────────────────────────── */
+  --success: #16a34a;
+  --danger: #e11d48;
+  --warning: #f59e0b;
+  --info: #0ea5e9;
+
+  /* ── أرصدة مالية ────────────────────────────────── */
+  --pos: #0e9f6e; /* موجب: لنا */
+  --neg: #e11d48; /* سالب: علينا */
+
+  /* ── المحايدات ──────────────────────────────────── */
   --ink: #0f172a;
   --muted: #5b6b7d;
   --border: #e4e9f0;
   --bg: #f5f8f8;
   --surface: #ffffff;
+  --surface-2: #f1f5f6;
+
+  /* ── الظلال ─────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 18px rgba(15, 42, 42, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 42, 42, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --brand-50: #0c2b28;
+    --brand-100: #0f3b36;
     --brand-600: #14b8a6;
     --brand-700: #0d9488;
+
     --accent: #e0b558;
+    --accent-soft: #2a2416;
+
+    --pos: #34d399;
+    --neg: #fb7185;
+
     --ink: #e6edf3;
     --muted: #93a4b5;
     --border: #22304a;
     --bg: #0a111e;
     --surface: #131c2e;
+    --surface-2: #0f1726;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
   }
 }
 
+/* ربط التوكِنز بأصناف Tailwind — الاستهلاك حصراً عبر هذه الأسماء */
 @theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
   --color-brand: var(--brand-600);
-  --color-brand-strong: var(--brand-700);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+
   --font-sans: var(--font-tajawal), system-ui, sans-serif;
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-tajawal), system-ui, sans-serif;
-  font-feature-settings: "tnum";
+}
+
+/* الأرقام المالية جدولية دائماً (ق5) */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

@@ -1,0 +1,19 @@
+{
+  "name": "حوالات",
+  "short_name": "حوالات",
+  "description": "نظام محاسبي لإدارة الحوالات المالية بين المكاتب",
+  "dir": "rtl",
+  "lang": "ar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8f8",
+  "theme_color": "#0d9488",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
