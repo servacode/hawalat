@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { LogoutButton } from "@/components/auth/RoleGuard";
 import { NotificationBell } from "./NotificationBell";
+import { InstallButton } from "@/components/pwa/PwaSetup";
 
 export interface NavItem {
   href: string;
@@ -59,7 +60,8 @@ export function Shell({
             );
           })}
         </nav>
-        <div className="border-t border-border p-4">
+        <div className="flex flex-col gap-2 border-t border-border p-4">
+          <InstallButton />
           <LogoutButton />
         </div>
       </aside>

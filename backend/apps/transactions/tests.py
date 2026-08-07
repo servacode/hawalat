@@ -341,3 +341,70 @@ class FiltersTests(BaseTxnTestCase):
         self.assertEqual(len(res.data), 1)
         res = self.client.get("/api/office/transactions/pending/")
         self.assertEqual(len(res.data), 0)
+
+
+class PolishTests(BaseTxnTestCase):
+    """المرحلة 10: تعديل الحركة من النقطة + تنبيه اقتراب الحد."""
+
+    def _accepted(self, amount="1000"):
+        self.auth("aleppo")
+        txn_id = self.send_txn(amount=amount).data["id"]
+        self.auth("damascus")
+        self.client.post(
+            f"/api/office/transactions/{txn_id}/approve/",
+            {"box": self.box.pk, "fee_cost": "10", "fee_charged": "15"},
+            format="json",
+        )
+        return txn_id
+
+    def test_edit_endpoint_reverses_and_reposts(self):
+        from apps.boxes.services import get_small_office_account
+
+        txn_id = self._accepted()
+        res = self.client.post(
+            f"/api/office/transactions/{txn_id}/edit/",
+            {"fee_charged": "25"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(D(res.data["fee_charged"]), D("25"))
+        with tenant_context(self.tenant):
+            # الرصيد الجديد يعكس المستحقة المعدّلة: 1000+25
+            self.assertEqual(get_small_office_account(self.small, "USD").balance, D("1025"))
+
+    def test_edit_notifies_small(self):
+        from apps.notifications.models import Notification
+
+        txn_id = self._accepted()
+        self.client.post(
+            f"/api/office/transactions/{txn_id}/edit/",
+            {"fee_charged": "20"},
+            format="json",
+        )
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.small, title__contains="عُدّلت").exists()
+        )
+
+    def test_small_cannot_edit(self):
+        txn_id = self._accepted()
+        self.auth("aleppo")
+        res = self.client.post(
+            f"/api/office/transactions/{txn_id}/edit/",
+            {"fee_charged": "1"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_limit_proximity_notification(self):
+        from apps.boxes.models import CreditLimit
+        from apps.notifications.models import Notification
+
+        with tenant_context(self.tenant):
+            CreditLimit.objects.filter(user=self.small, currency="USD").update(
+                negative_limit=D("1200")
+            )
+        # 1000+15=1015 عليه ≥ 80% من 1200 (960) → تنبيه
+        self._accepted()
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.big, ntype=Notification.Type.LIMIT).exists()
+        )

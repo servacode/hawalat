@@ -29,6 +29,7 @@ from .serializers import (
 from .services import (
     approve_transaction,
     create_transaction,
+    edit_accepted_transaction,
     mark_delivered,
     mark_paid,
     reject_transaction,
@@ -189,12 +190,82 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
         except ValidationError as e:
             return Response({"detail": e.messages[0]}, status=400)
         audit(request, "approve_transaction", txn, box=box.name)
+        self._warn_if_near_limit(request, txn)
         if txn.created_by_id != request.user.id:
             notify(
                 txn.created_by,
                 Notification.Type.TXN_ACCEPTED,
                 f"قُبلت حركتك {txn.reference_code}",
                 f"الأجور المستحقة: {txn.fee_charged} {txn.currency_received}",
+                entity="transaction",
+                entity_id=txn.id,
+            )
+            push_refresh(txn.created_by, "balances")
+        return Response(TransactionSerializer(txn).data)
+
+    def _warn_if_near_limit(self, request, txn):
+        """تنبيه الكبير عند بلوغ العضو ≥80% من حدّه السالب (الجزء 20-أ)."""
+        from decimal import Decimal
+
+        from apps.boxes.services import get_negative_limit, get_small_office_account
+
+        limit = get_negative_limit(txn.created_by, txn.currency_received)
+        if limit <= 0:
+            return
+        owed = get_small_office_account(txn.created_by, txn.currency_received).balance
+        if owed >= limit * Decimal("0.8"):
+            notify(
+                request.user,
+                Notification.Type.LIMIT,
+                f"⚠️ {txn.created_by.first_name or txn.created_by.username} يقترب من حدّه",
+                f"عليه الآن {owed} من حد {limit} {txn.currency_received}",
+                entity="user",
+                entity_id=txn.created_by_id,
+            )
+
+    @action(detail=True, methods=["post"])
+    def edit(self, request, pk=None):
+        """تعديل حركة مقبولة (§4-هـ): عكس + إعادة ترحيل — ينعكس على الطرفين."""
+        txn = self._get(pk)
+        if txn is None:
+            return Response(status=404)
+        allowed = {
+            "sender",
+            "beneficiary",
+            "destination",
+            "amount",
+            "fee_cost",
+            "fee_charged",
+            "exchange_rate",
+        }
+        new_values = {}
+        for key in allowed:
+            if key in request.data and request.data[key] not in (None, ""):
+                value = request.data[key]
+                if key not in ("sender", "beneficiary", "destination"):
+                    from decimal import Decimal, InvalidOperation
+
+                    try:
+                        value = Decimal(str(value))
+                    except InvalidOperation:
+                        return Response({"detail": f"قيمة غير صالحة: {key}"}, status=400)
+                new_values[key] = value
+        if box_id := request.data.get("box"):
+            box = IntermediaryBox.objects.filter(pk=box_id, is_active=True).first()
+            if box is None:
+                return Response({"detail": "صندوق الوسيط غير موجود."}, status=400)
+            new_values["box"] = box
+        try:
+            edit_accepted_transaction(txn=txn, **new_values)
+        except ValidationError as e:
+            return Response({"detail": e.messages[0]}, status=400)
+        audit(request, "edit_transaction", txn, changed=list(new_values.keys()))
+        if txn.created_by_id != request.user.id:
+            notify(
+                txn.created_by,
+                Notification.Type.TXN_REVERSED,
+                f"عُدّلت حركتك {txn.reference_code}",
+                "التعديل انعكس على حسابك تلقائياً.",
                 entity="transaction",
                 entity_id=txn.id,
             )

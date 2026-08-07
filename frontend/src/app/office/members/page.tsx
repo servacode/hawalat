@@ -37,6 +37,10 @@ export default function MembersPage() {
   // الحدود
   const [limitFor, setLimitFor] = useState<Member | null>(null);
   const [limitForm, setLimitForm] = useState({ currency: "", negative_limit: "" });
+  // استعادة كلمة المرور
+  const [resetFor, setResetFor] = useState<Member | null>(null);
+  const [resetPw, setResetPw] = useState("");
+  const [resetDone, setResetDone] = useState(false);
 
   const load = useCallback(() => {
     authedApi<Member[]>("/api/office/members/").then(setMembers).catch(() => {});
@@ -85,10 +89,33 @@ export default function MembersPage() {
 
   async function sendRecon() {
     if (!recon || !reconFor) return;
-    await sendToWhatsApp(
-      buildReconciliationMessage(recon.user, recon.office_code, recon.rows, recon.last_at),
-      reconFor.whatsapp_group_link || null,
-    );
+    const text = buildReconciliationMessage(recon.user, recon.office_code, recon.rows, recon.last_at);
+    // بوت أولاً (إن كان مفعّلاً) ثم الرابط اليدوي
+    try {
+      await authedApi("/api/whatsapp/send/", {
+        method: "POST",
+        body: { text, member_id: reconFor.id },
+      });
+      return;
+    } catch {
+      /* الوضع يدوي أو فشل → الرابط */
+    }
+    await sendToWhatsApp(text, reconFor.whatsapp_group_link || null);
+  }
+
+  async function doReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetFor) return;
+    await authedApi("/api/auth/reset-password/", {
+      method: "POST",
+      body: { user_id: resetFor.id, new_password: resetPw },
+    });
+    setResetDone(true);
+    setTimeout(() => {
+      setResetFor(null);
+      setResetPw("");
+      setResetDone(false);
+    }, 1200);
   }
 
   async function saveLimit(e: React.FormEvent) {
@@ -136,6 +163,7 @@ export default function MembersPage() {
                   <div className="flex flex-wrap gap-1.5">
                     <Button size="sm" variant="ghost" onClick={() => openRecon(m)}>مطابقة</Button>
                     <Button size="sm" variant="ghost" onClick={() => setLimitFor(m)}>الحدود</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setResetFor(m)}>🔑</Button>
                     <Button size="sm" variant={m.is_blocked ? "primary" : "danger"} onClick={() => toggleBlock(m)}>
                       {m.is_blocked ? "فك الحظر" : "حظر"}
                     </Button>
@@ -220,6 +248,20 @@ export default function MembersPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* استعادة كلمة المرور (الجزء 10) */}
+      <Modal open={resetFor !== null} onClose={() => setResetFor(null)}
+        title={resetFor ? `استعادة كلمة مرور ${resetFor.name}` : ""}>
+        <form onSubmit={doReset} className="flex flex-col gap-4">
+          <Input label="كلمة المرور الجديدة" type="password" hint="8 أحرف على الأقل"
+            value={resetPw} onChange={(e) => setResetPw(e.target.value)} required minLength={8} />
+          {resetDone && <p className="text-sm text-success">تمت الاستعادة ✓</p>}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={() => setResetFor(null)}>إلغاء</Button>
+            <Button type="submit">إعادة التعيين</Button>
+          </div>
+        </form>
       </Modal>
 
       {/* الحدود */}

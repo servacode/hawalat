@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
+import { PwaSetup } from "@/components/pwa/PwaSetup";
 
 // خط الواجهة الموحّد — يُستهلك عبر متغيّر CSS من طبقة التوكِنز
 const tajawal = Tajawal({
@@ -27,7 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={`${tajawal.variable} antialiased`}>{children}</body>
+      <body className={`${tajawal.variable} antialiased`}>
+        <PwaSetup />
+        {children}
+      </body>
     </html>
   );
 }

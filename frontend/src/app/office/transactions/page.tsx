@@ -3,7 +3,7 @@
 /** سجل حركات المكتب الكبير (الجزء 11): كل المنفَّذ + فلتر احترافي + مدفوعة/تسليم/عكس. */
 
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, EmptyState, Input, Select, Skeleton, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
@@ -27,6 +27,9 @@ export default function OfficeHistoryPage() {
   const [q, setQ] = useState("");
   const [approval, setApproval] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
+  const [editFor, setEditFor] = useState<Txn | null>(null);
+  const [editForm, setEditForm] = useState({ amount: "", fee_cost: "", fee_charged: "" });
+  const [editError, setEditError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -37,6 +40,28 @@ export default function OfficeHistoryPage() {
       .catch(() => {});
   }, [q, approval]);
   useEffect(load, [load]);
+
+  function openEdit(t: Txn) {
+    setEditFor(t);
+    setEditForm({ amount: t.amount, fee_cost: t.fee_cost ?? "", fee_charged: t.fee_charged ?? "" });
+    setEditError(null);
+  }
+
+  async function submitEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editFor) return;
+    setEditError(null);
+    try {
+      await authedApi(`/api/office/transactions/${editFor.id}/edit/`, {
+        method: "POST", body: editForm,
+      });
+      setEditFor(null);
+      load();
+    } catch (err) {
+      const detail = (err as { data?: { detail?: string } })?.data?.detail;
+      setEditError(detail ?? "تعذر التعديل — اعكس القبض أولاً إن كانت مدفوعة.");
+    }
+  }
 
   async function act(t: Txn, action: "pay" | "deliver" | "reverse") {
     setBusy(t.id);
@@ -114,6 +139,11 @@ export default function OfficeHistoryPage() {
                           تم التسليم
                         </Button>
                       )}
+                      {t.payment_status !== "paid" && (
+                        <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
+                          تعديل
+                        </Button>
+                      )}
                       <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
                         عكس
                       </Button>
@@ -125,6 +155,30 @@ export default function OfficeHistoryPage() {
           </TBody>
         </Table>
       )}
+      <Modal open={editFor !== null} onClose={() => setEditFor(null)}
+        title={editFor ? `تعديل ${editFor.reference_code}` : ""}>
+        <form onSubmit={submitEdit} className="flex flex-col gap-4">
+          <p className="rounded-md bg-warning/10 px-3 py-2 text-sm text-warning">
+            التعديل يعكس القيد الأصلي ويعيد ترحيله بالقيم الجديدة — وينعكس على الطرفين.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input label="المبلغ" type="number" step="0.01" min={0} className="tnum"
+              value={editForm.amount}
+              onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
+            <Input label="رأس مال الأجور" type="number" step="0.01" min={0} className="tnum"
+              value={editForm.fee_cost}
+              onChange={(e) => setEditForm({ ...editForm, fee_cost: e.target.value })} />
+            <Input label="الأجور المستحقة" type="number" step="0.01" min={0} className="tnum"
+              value={editForm.fee_charged}
+              onChange={(e) => setEditForm({ ...editForm, fee_charged: e.target.value })} />
+          </div>
+          {editError && <p className="text-sm text-danger">{editError}</p>}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={() => setEditFor(null)}>إلغاء</Button>
+            <Button type="submit">تطبيق التعديل</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

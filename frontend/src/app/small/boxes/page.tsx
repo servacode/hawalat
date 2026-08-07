@@ -63,11 +63,13 @@ export default function SmallBoxesPage() {
     try {
       const data = await authedApi<Recon>("/api/small/reconciliation/", { method: "POST" });
       setRecon(data);
-      const link = getSession()?.user.whatsapp_group_link;
-      await sendToWhatsApp(
-        buildReconciliationMessage(data.user, data.office_code, data.rows, data.last_at),
-        link || null,
-      );
+      const text = buildReconciliationMessage(data.user, data.office_code, data.rows, data.last_at);
+      try {
+        await authedApi("/api/whatsapp/send/", { method: "POST", body: { text } });
+      } catch {
+        const link = getSession()?.user.whatsapp_group_link;
+        await sendToWhatsApp(text, link || null);
+      }
       setWaSent(true);
     } finally {
       setReconBusy(false);
