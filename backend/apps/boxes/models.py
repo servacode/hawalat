@@ -148,3 +148,36 @@ __all__ = [
     "Tenant",
     "TimeStampedModel",
 ]
+
+
+class Reconciliation(TenantScopedModel):
+    """
+    مطابقة (المشهد 4): كشف دوري تراكمي لمكتب صغير — لا يُصفّر الحسابات.
+
+    - النظام يحفظ تاريخ آخر مطابقة، فالمطابقة التالية تعرض:
+      رصيداً سابقاً (من آخر مطابقة) + حركات ما بعده فقط.
+    - snapshot: لقطة الأرصدة لكل عملة لحظة التثبيت (مرجع الفترة القادمة).
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="المكتب الصغير",
+        on_delete=models.PROTECT,
+        related_name="reconciliations",
+    )
+    snapshot = models.JSONField("لقطة الأرصدة", default=list)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="ثبّتها",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "مطابقة"
+        verbose_name_plural = "المطابقات"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"مطابقة {self.user} — {self.created_at:%Y-%m-%d %H:%M}"

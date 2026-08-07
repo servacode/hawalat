@@ -12,4 +12,5 @@ urlpatterns = [
     path("api/", include("apps.admin_panel.urls")),
     path("api/", include("apps.boxes.urls")),
     path("api/", include("apps.transactions.urls")),
+    path("api/", include("apps.accounts.office_urls")),
 ]

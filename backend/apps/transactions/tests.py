@@ -287,9 +287,7 @@ class PermissionTests(BaseTxnTestCase):
             self.assertEqual(res.status_code, 403, action)
 
     def test_small_sees_only_own(self):
-        create_small_office(
-            tenant=self.tenant, name="آخر", username="other_s", password=PASSWORD
-        )
+        create_small_office(tenant=self.tenant, name="آخر", username="other_s", password=PASSWORD)
         self.auth("aleppo")
         self.send_txn()
         self.auth("other_s")

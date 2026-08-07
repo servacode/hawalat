@@ -31,6 +31,7 @@ from .services import (
     deposit_to_box,
     get_box_account,
     get_shop_cash_account,
+    get_small_office_account,
     reverse_entry,
     withdraw_from_box,
 )
@@ -227,11 +228,7 @@ class SmallCurrenciesView(APIView):
     permission_classes = [IsAuthenticated, IsSmallOffice]
 
     def get(self, request):
-        return Response(
-            CurrencySerializer(
-                Currency.objects.filter(is_active=True), many=True
-            ).data
-        )
+        return Response(CurrencySerializer(Currency.objects.filter(is_active=True), many=True).data)
 
 
 class MyBalancesView(APIView):
@@ -253,3 +250,118 @@ class MyBalancesView(APIView):
                 }
             )
         return Response({"balances": balances})
+
+
+class ReconciliationView(APIView):
+    """مطابقة مكتب صغير (المشهد 4) — GET معاينة، POST تثبيت (نقطة إغلاق جديدة)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def _target(self, request, user_id):
+        from .services import build_reconciliation  # noqa: F401
+
+        if user_id is None:
+            # الصغير يطابق نفسه
+            if request.user.role != User.Role.SMALL_OFFICE:
+                return None
+            return request.user
+        # الكبير يطابق أحد أعضائه
+        if request.user.role != User.Role.BIG_OFFICE:
+            return None
+        return User.objects.filter(
+            pk=user_id, tenant=request.user.tenant, role=User.Role.SMALL_OFFICE
+        ).first()
+
+    def get(self, request, user_id=None):
+        from .services import build_reconciliation
+
+        target = self._target(request, user_id)
+        if target is None:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        data = build_reconciliation(target)
+        return Response(
+            {
+                "user": target.first_name or target.username,
+                "office_code": target.office_code,
+                "last_at": data["last_at"],
+                "rows": data["rows"],
+            }
+        )
+
+    def post(self, request, user_id=None):
+        from .services import commit_reconciliation
+
+        target = self._target(request, user_id)
+        if target is None:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        rec, data = commit_reconciliation(target, created_by=request.user)
+        AuditLog.objects.create(
+            tenant=target.tenant,
+            actor=request.user,
+            action="commit_reconciliation",
+            entity="reconciliation",
+            entity_id=str(rec.pk),
+        )
+        return Response(
+            {
+                "id": rec.pk,
+                "user": target.first_name or target.username,
+                "office_code": target.office_code,
+                "at": rec.created_at,
+                "last_at": data["last_at"],
+                "rows": data["rows"],
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class SmallStatementView(APIView):
+    """كشف حساب المكتب الصغير لنفسه بعملة محددة."""
+
+    permission_classes = [IsAuthenticated, IsSmallOffice]
+
+    def get(self, request):
+        currency = request.query_params.get("currency")
+        if not currency:
+            return Response({"detail": "حدد العملة."}, status=400)
+        account = get_small_office_account(request.user, currency)
+        data = account_statement(account)
+        return Response(
+            {
+                "currency": currency,
+                "balance": str(data["balance"]),
+                "lines": [
+                    {**line, "debit": str(line["debit"]), "credit": str(line["credit"])}
+                    for line in data["lines"]
+                ],
+            }
+        )
+
+
+class MemberStatementView(APIView):
+    """كشف حساب عضو (مكتب صغير) بعملة محددة — للكبير."""
+
+    permission_classes = [IsAuthenticated, IsBigOffice]
+
+    def get(self, request, user_id):
+        member = User.objects.filter(
+            pk=user_id, tenant=request.user.tenant, role=User.Role.SMALL_OFFICE
+        ).first()
+        if member is None:
+            return Response(status=404)
+        currency = request.query_params.get("currency")
+        if not currency:
+            return Response({"detail": "حدد العملة."}, status=400)
+        account = get_small_office_account(member, currency)
+        data = account_statement(account)
+        return Response(
+            {
+                "member": member.first_name or member.username,
+                "currency": currency,
+                "balance": str(data["balance"]),
+                "lines": [
+                    {**line, "debit": str(line["debit"]), "credit": str(line["credit"])}
+                    for line in data["lines"]
+                ],
+            }
+        )

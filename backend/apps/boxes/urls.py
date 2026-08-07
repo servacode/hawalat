@@ -3,12 +3,15 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CreditLimitViewSet,
-    SmallCurrenciesView,
     CurrencyViewSet,
     IntermediaryBoxViewSet,
+    MemberStatementView,
     MyBalancesView,
+    ReconciliationView,
     ReverseEntryView,
     ShopCashView,
+    SmallCurrenciesView,
+    SmallStatementView,
 )
 
 router = DefaultRouter()
@@ -24,4 +27,16 @@ urlpatterns = [
     ),
     path("small/balances/", MyBalancesView.as_view(), name="my-balances"),
     path("small/currencies/", SmallCurrenciesView.as_view(), name="small-currencies"),
+    path("small/statement/", SmallStatementView.as_view(), name="small-statement"),
+    path("small/reconciliation/", ReconciliationView.as_view(), name="small-reconciliation"),
+    path(
+        "office/members/<int:user_id>/statement/",
+        MemberStatementView.as_view(),
+        name="member-statement",
+    ),
+    path(
+        "office/members/<int:user_id>/reconciliation/",
+        ReconciliationView.as_view(),
+        name="member-reconciliation",
+    ),
 ]

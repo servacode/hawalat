@@ -47,3 +47,31 @@ export async function sendToWhatsApp(text: string, groupLink?: string | null) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
   return "shared" as const;
 }
+
+// ---------------------------------------------------------------- المطابقة
+
+export interface ReconciliationRow {
+  currency: string;
+  previous: string;
+  debits: string;
+  credits: string;
+  balance: string;
+}
+
+/** نص المطابقة (المشهد 4): رصيد سابق + حركات الفترة + الصافي لكل عملة. */
+export function buildReconciliationMessage(
+  officeName: string,
+  officeCode: string,
+  rows: ReconciliationRow[],
+  lastAt?: string | null,
+): string {
+  const lines = [`📊 مطابقة حساب — ${officeName} (${officeCode})`];
+  if (lastAt) lines.push(`منذ آخر مطابقة: ${new Date(lastAt).toLocaleString("en-GB")}`);
+  for (const r of rows) {
+    const bal = Number(r.balance);
+    const label = bal > 0 ? `عليكم ${r.balance}` : bal < 0 ? `لكم ${Math.abs(bal)}` : "متوازن";
+    lines.push(`— ${r.currency}: سابق ${r.previous} · لكم ${r.credits} · عليكم ${r.debits} ⇐ ${label}`);
+  }
+  lines.push("(كشف دوري — لا يُصفّر الحسابات)");
+  return lines.join("\n");
+}

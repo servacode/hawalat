@@ -184,3 +184,56 @@ def account_statement(account: Account, limit: int = 200):
             for line in lines
         ],
     }
+
+
+# ---------------------------------------------------------------- المطابقة (المشهد 4)
+
+
+def build_reconciliation(user):
+    """
+    يبني كشف المطابقة الحالي لمكتب صغير:
+    لكل عملة: الرصيد السابق (آخر مطابقة) + مدين/دائن الفترة + الرصيد الحالي.
+    ثابت داخلي: السابق + مدين − دائن = الرصيد الفعلي للحساب (يُختبر آلياً).
+    """
+    from .models import Reconciliation
+
+    last = Reconciliation.all_objects.filter(user=user).order_by("-created_at").first()
+    since = last.created_at if last else None
+    prev_map = {row["currency"]: Decimal(row["balance"]) for row in last.snapshot} if last else {}
+
+    rows = []
+    links = SmallOfficeAccount.all_objects.filter(user=user).select_related("account")
+    for link in links:
+        account = link.account
+        qs = account.lines.all()
+        if since:
+            qs = qs.filter(created_at__gt=since)
+        from django.db.models import Sum
+
+        agg = qs.aggregate(debit=Sum("debit", default=0), credit=Sum("credit", default=0))
+        previous = prev_map.get(link.currency, Decimal("0"))
+        balance = previous + agg["debit"] - agg["credit"]
+        rows.append(
+            {
+                "currency": link.currency,
+                "previous": str(previous),
+                "debits": str(agg["debit"]),
+                "credits": str(agg["credit"]),
+                "balance": str(balance),  # موجب = عليه، سالب = له
+            }
+        )
+    return {"last_at": since, "rows": rows}
+
+
+def commit_reconciliation(user, *, created_by):
+    """يثبّت المطابقة: يحفظ اللقطة فتصبح نقطة الإغلاق الجديدة."""
+    from .models import Reconciliation
+
+    data = build_reconciliation(user)
+    rec = Reconciliation.all_objects.create(
+        tenant=user.tenant,
+        user=user,
+        created_by=created_by,
+        snapshot=[{"currency": r["currency"], "balance": r["balance"]} for r in data["rows"]],
+    )
+    return rec, data
