@@ -19,3 +19,6 @@ if "test" in sys.argv:
 # طبقة قنوات داخل الذاكرة عند غياب Redis (تطوير محلي/E2E بعملية واحدة)
 if not os.environ.get("REDIS_URL"):  # noqa: F405
     CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    # ومهام Celery تنفَّذ فورياً في نفس العملية
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = False

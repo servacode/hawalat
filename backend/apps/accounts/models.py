@@ -34,6 +34,8 @@ class User(AbstractUser):
     phone = models.CharField("رقم هاتف واتساب", max_length=32, blank=True)
     whatsapp_group_name = models.CharField("اسم مجموعة الواتساب", max_length=150, blank=True)
     whatsapp_group_link = models.URLField("رابط مجموعة الواتساب", blank=True)
+    # معرّف المحادثة للبوت (اختياري — يُستخدم فقط عند تفعيل وضع البوت)
+    whatsapp_chat_id = models.CharField("معرّف مجموعة البوت", max_length=100, blank=True)
     is_blocked = models.BooleanField("محظور", default=False)
 
     class Meta:

@@ -68,6 +68,7 @@ def create_small_office(
     phone: str = "",
     whatsapp_group_name: str = "",
     whatsapp_group_link: str = "",
+    whatsapp_chat_id: str = "",
 ) -> User:
     """ينشئ مكتباً صغيراً تابعاً لمستأجر، بكود مرتبط بكود الكبير."""
     return User.objects.create_user(
@@ -79,5 +80,6 @@ def create_small_office(
         phone=phone,
         whatsapp_group_name=whatsapp_group_name,
         whatsapp_group_link=whatsapp_group_link,
+        whatsapp_chat_id=whatsapp_chat_id,
         first_name=name,
     )

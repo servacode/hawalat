@@ -18,6 +18,7 @@ from apps.core.models import AuditLog
 from apps.core.permissions import IsBigOffice
 from apps.notifications.models import Notification
 from apps.notifications.services import notify, push_refresh
+from apps.whatsapp.services import queue_message
 
 from .models import Transaction
 from .serializers import (
@@ -116,7 +117,18 @@ class MyTransactionsViewSet(viewsets.ViewSet):
             )
         if big:
             push_refresh(big, "pending")
-        return Response(TransactionSerializer(txn).data, status=status.HTTP_201_CREATED)
+        # وضع البوت (الجزء 17 §6): إرسال تلقائي فوري لمجموعة المكتب إن كان مفعّلاً
+        wa_text = (
+            f"🧾 حركة جديدة — {txn.reference_code}\n"
+            f"المرسِل: {txn.sender}\nالمستفيد: {txn.beneficiary}\n"
+            f"المبلغ: {txn.amount} {txn.currency_received}\nالوجهة: {txn.destination}"
+        )
+        wa_msg = queue_message(to_user=request.user, text=wa_text)
+        data = TransactionSerializer(txn).data
+        data["whatsapp_bot"] = (
+            {"queued": True, "status": wa_msg.status} if wa_msg else {"queued": False}
+        )
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class OfficeTransactionsViewSet(viewsets.ViewSet):

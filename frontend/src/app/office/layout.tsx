@@ -11,6 +11,7 @@ const NAV: NavItem[] = [
   { href: "/office/boxes", label: "الصناديق", icon: "🏦" },
   { href: "/office/reports", label: "التقارير", icon: "📈" },
   { href: "/office/alerts", label: "التنبيهات", icon: "📢" },
+  { href: "/office/settings", label: "الإعدادات", icon: "⚙️" },
 ];
 
 export default function OfficeLayout({ children }: { children: React.ReactNode }) {

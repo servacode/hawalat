@@ -21,7 +21,7 @@ interface Recon { user: string; office_code: string; last_at: string | null; row
 
 const emptyCreate = {
   name: "", username: "", password: "", phone: "",
-  whatsapp_group_name: "", whatsapp_group_link: "",
+  whatsapp_group_name: "", whatsapp_group_link: "", whatsapp_chat_id: "",
 };
 
 export default function MembersPage() {
@@ -163,6 +163,10 @@ export default function MembersPage() {
           <Input label="رابط مجموعة الواتساب" dir="ltr" placeholder="https://chat.whatsapp.com/…"
             value={createForm.whatsapp_group_link}
             onChange={(e) => setCreateForm({ ...createForm, whatsapp_group_link: e.target.value })} />
+          <Input label="معرّف مجموعة البوت (اختياري)" dir="ltr" placeholder="12036…@g.us"
+            hint="يلزم فقط عند تفعيل وضع البوت"
+            value={createForm.whatsapp_chat_id}
+            onChange={(e) => setCreateForm({ ...createForm, whatsapp_chat_id: e.target.value })} />
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="flex justify-end gap-3 sm:col-span-2">
             <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>إلغاء</Button>

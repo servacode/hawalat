@@ -26,3 +26,6 @@ openpyxl>=3.1
 reportlab>=4.2
 arabic-reshaper>=3.0
 python-bidi>=0.6
+
+# WhatsApp gateway
+requests>=2.32

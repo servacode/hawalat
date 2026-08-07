@@ -13,6 +13,7 @@ import { getSession } from "@/lib/auth";
 import { buildTransactionMessage, sendToWhatsApp } from "@/lib/whatsapp";
 
 interface CurrencyRow { code: string; name: string }
+interface BotStatus { bot_enabled: boolean; chat_configured: boolean }
 interface CreatedTxn {
   reference_code: string; sender: string; beneficiary: string;
   amount: string; currency_received: string; currency_delivered: string;
@@ -30,9 +31,11 @@ export default function SendPage() {
   const [created, setCreated] = useState<CreatedTxn | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [waState, setWaState] = useState<"copied" | "shared" | null>(null);
+  const [waState, setWaState] = useState<"copied" | "shared" | "bot" | null>(null);
+  const [bot, setBot] = useState<BotStatus | null>(null);
 
   useEffect(() => {
+    authedApi<BotStatus>("/api/whatsapp/status/").then(setBot).catch(() => {});
     // عملات المستأجر — نقطة الصغير للأرصدة لا تكفي؛ العملات تأتي من حركاته/إعداد الكبير.
     authedApi<{ results?: CurrencyRow[] } | CurrencyRow[]>("/api/small/currencies/")
       .then((d) => setCurrencies(Array.isArray(d) ? d : (d.results ?? [])))
@@ -61,10 +64,22 @@ export default function SendPage() {
     }
   }
 
+  const botReady = !!bot?.bot_enabled && !!bot?.chat_configured;
+
   async function whatsapp() {
     if (!created) return;
+    const text = buildTransactionMessage(created);
+    if (botReady) {
+      try {
+        await authedApi("/api/whatsapp/send/", { method: "POST", body: { text } });
+        setWaState("bot");
+        return;
+      } catch {
+        /* فشل البوت → نتحول للرابط اليدوي */
+      }
+    }
     const link = getSession()?.user.whatsapp_group_link;
-    const result = await sendToWhatsApp(buildTransactionMessage(created), link || null);
+    const result = await sendToWhatsApp(text, link || null);
     setWaState(result);
   }
 
@@ -82,13 +97,17 @@ export default function SendPage() {
           </pre>
           {waState && (
             <p className="text-sm text-success">
-              {waState === "copied"
-                ? "نُسخ النص — الصقه في مجموعتك التي فُتحت الآن."
-                : "فُتحت نافذة الواتساب بالنص الجاهز."}
+              {waState === "bot"
+                ? "🤖 أُرسلت تلقائياً لمجموعتك عبر البوت."
+                : waState === "copied"
+                  ? "نُسخ النص — الصقه في مجموعتك التي فُتحت الآن."
+                  : "فُتحت نافذة الواتساب بالنص الجاهز."}
             </p>
           )}
           <div className="flex flex-wrap gap-3">
-            <Button variant="accent" onClick={whatsapp}>📲 إرسال للواتساب</Button>
+            <Button variant="accent" onClick={whatsapp}>
+              {botReady ? "🤖 إرسال عبر البوت" : "📲 إرسال للواتساب"}
+            </Button>
             <Button variant="ghost" onClick={() => { setCreated(null); setWaState(null); }}>
               حركة جديدة
             </Button>
