@@ -25,3 +25,21 @@ export async function authedApi<T>(
     throw err;
   }
 }
+
+/** تنزيل ملف (Excel/PDF) بجلسة موثّقة عبر blob — window.open لا يحمل التوكن. */
+export async function authedDownload(path: string, filename: string) {
+  const session = getSession();
+  if (!session) return;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { Authorization: `Bearer ${session.access}` },
+  });
+  if (!res.ok) throw new ApiError(res.status, "فشل التنزيل");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
