@@ -205,8 +205,10 @@ class AdminStatsView(APIView):
                 "expiring_soon": Subscription.objects.filter(
                     status=Subscription.Status.ACTIVE, expires_at__lte=soon
                 ).count(),
-                # عدد الحركات كرقم مجرّد — يُفعَّل مع مرحلة الحركات
-                "transactions_total": 0,
+                # عدد الحركات كرقم مجرّد فقط (لا مبالغ)
+                "transactions_total": __import__(
+                    "apps.transactions.models", fromlist=["Transaction"]
+                ).Transaction.all_objects.count(),
             }
         )
 

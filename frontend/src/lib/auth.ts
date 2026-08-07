@@ -14,6 +14,8 @@ export interface SessionUser {
   office_code: string;
   tenant_code: string | null;
   tenant_name: string | null;
+  whatsapp_group_link?: string;
+  whatsapp_group_name?: string;
 }
 
 export interface Session {

@@ -221,6 +221,19 @@ class ShopCashView(APIView):
         return Response({"balances": balances})
 
 
+class SmallCurrenciesView(APIView):
+    """المكتب الصغير: قراءة عملات مستأجره (لاختيار العملة في الإرسال)."""
+
+    permission_classes = [IsAuthenticated, IsSmallOffice]
+
+    def get(self, request):
+        return Response(
+            CurrencySerializer(
+                Currency.objects.filter(is_active=True), many=True
+            ).data
+        )
+
+
 class MyBalancesView(APIView):
     """المكتب الصغير: صناديقه لكل عملة (له/عليه/الصافي) — الجزء 3-د."""
 

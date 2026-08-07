@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CreditLimitViewSet,
+    SmallCurrenciesView,
     CurrencyViewSet,
     IntermediaryBoxViewSet,
     MyBalancesView,
@@ -22,4 +23,5 @@ urlpatterns = [
         "office/entries/<int:entry_id>/reverse/", ReverseEntryView.as_view(), name="reverse-entry"
     ),
     path("small/balances/", MyBalancesView.as_view(), name="my-balances"),
+    path("small/currencies/", SmallCurrenciesView.as_view(), name="small-currencies"),
 ]
