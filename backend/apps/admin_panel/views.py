@@ -18,6 +18,8 @@ from apps.accounts.models import User
 from apps.accounts.services import create_big_office
 from apps.core.models import AuditLog, PlatformSettings, Tenant
 from apps.core.permissions import IsBigOffice, IsPlatformAdmin
+from apps.notifications.models import Notification
+from apps.notifications.services import notify
 
 from .models import AdminBroadcast, Package, Subscription
 from .serializers import (
@@ -285,6 +287,15 @@ class OfficeSubscriptionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         sub = Subscription.objects.create(tenant=request.user.tenant, package=package)
+        for admin_user in User.objects.filter(role=User.Role.ADMIN):
+            notify(
+                admin_user,
+                Notification.Type.SUBSCRIPTION,
+                f"طلب باقة جديد: {package.name}",
+                f"من {request.user.tenant.name}",
+                entity="subscription",
+                entity_id=sub.pk,
+            )
         audit(
             request.user, "request_subscription", "subscription", sub.pk, tenant=request.user.tenant
         )

@@ -30,6 +30,7 @@ ALLOWED_HOSTS = [
 # ---------------------------------------------------------------- التطبيقات
 
 DJANGO_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -53,6 +54,7 @@ LOCAL_APPS = [
     "apps.boxes",
     "apps.transactions",
     "apps.reports",
+    "apps.notifications",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

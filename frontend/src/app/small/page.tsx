@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
+import { onWsEvent } from "@/lib/ws";
 import { balanceTone, formatMoney } from "@/lib/format";
 
 interface BalanceRow {
@@ -36,12 +37,18 @@ export default function SmallHome() {
   const [txns, setTxns] = useState<Txn[] | null>(null);
 
   useEffect(() => {
-    authedApi<{ balances: BalanceRow[] }>("/api/small/balances/")
-      .then((d) => setBalances(d.balances))
-      .catch(() => setBalances([]));
-    authedApi<Txn[]>("/api/my/transactions/")
-      .then((d) => setTxns(d.slice(0, 5)))
-      .catch(() => setTxns([]));
+    const load = () => {
+      authedApi<{ balances: BalanceRow[] }>("/api/small/balances/")
+        .then((d) => setBalances(d.balances))
+        .catch(() => setBalances([]));
+      authedApi<Txn[]>("/api/my/transactions/")
+        .then((d) => setTxns(d.slice(0, 5)))
+        .catch(() => setTxns([]));
+    };
+    load();
+    return onWsEvent((e) => {
+      if (e.kind === "refresh" || e.kind === "notification") load();
+    });
   }, []);
 
   return (

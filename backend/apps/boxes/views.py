@@ -18,6 +18,8 @@ from rest_framework.views import APIView
 from apps.accounts.models import User
 from apps.core.models import AuditLog, JournalEntry
 from apps.core.permissions import IsBigOffice, IsSmallOffice
+from apps.notifications.models import Notification
+from apps.notifications.services import notify, push_refresh
 
 from .models import CreditLimit, Currency, IntermediaryBox, SmallOfficeAccount
 from .serializers import (
@@ -146,6 +148,16 @@ class IntermediaryBoxViewSet(viewsets.ModelViewSet):
             amount=str(data["amount"]),
             currency=data["currency"],
         )
+        label = "اعتماد" if action_name == "deposit" else "سحب"
+        notify(
+            small_user,
+            Notification.Type.SETTLEMENT,
+            f"{label} {data['amount']} {data['currency']} على حسابك",
+            f"عبر صندوق {box.name}",
+            entity="journal_entry",
+            entity_id=entry.pk,
+        )
+        push_refresh(small_user, "balances")
         return Response({"entry_id": entry.pk}, status=status.HTTP_201_CREATED)
 
 
@@ -302,6 +314,21 @@ class ReconciliationView(APIView):
             entity="reconciliation",
             entity_id=str(rec.pk),
         )
+        # إشعار الطرف الآخر بالمطابقة (الجزء 20-أ)
+        other = (
+            target
+            if request.user.id != target.id
+            else User.objects.filter(tenant=target.tenant, role=User.Role.BIG_OFFICE).first()
+        )
+        if other is not None and other.id != request.user.id:
+            notify(
+                other,
+                Notification.Type.RECONCILIATION,
+                f"مطابقة جديدة — {target.first_name or target.username}",
+                "ثُبّتت نقطة إغلاق جديدة.",
+                entity="reconciliation",
+                entity_id=rec.pk,
+            )
         return Response(
             {
                 "id": rec.pk,

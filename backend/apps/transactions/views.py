@@ -16,6 +16,8 @@ from apps.accounts.models import User
 from apps.boxes.models import IntermediaryBox
 from apps.core.models import AuditLog
 from apps.core.permissions import IsBigOffice
+from apps.notifications.models import Notification
+from apps.notifications.services import notify, push_refresh
 
 from .models import Transaction
 from .serializers import (
@@ -101,6 +103,19 @@ class MyTransactionsViewSet(viewsets.ViewSet):
         except ValidationError as e:
             return Response({"detail": e.messages[0]}, status=400)
         audit(request, "create_transaction", txn)
+        # إشعار الكبير بوصول حركة جديدة + تحديث لحظي لقائمة الجارية (الجزء 20-أ)
+        big = User.objects.filter(tenant=request.user.tenant, role=User.Role.BIG_OFFICE).first()
+        if big and big.id != request.user.id:
+            notify(
+                big,
+                Notification.Type.TXN_NEW,
+                f"حركة جديدة {txn.reference_code}",
+                f"من {request.user.first_name or request.user.username}: {txn.amount} {txn.currency_received} → {txn.destination}",
+                entity="transaction",
+                entity_id=txn.id,
+            )
+        if big:
+            push_refresh(big, "pending")
         return Response(TransactionSerializer(txn).data, status=status.HTTP_201_CREATED)
 
 
@@ -162,6 +177,16 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
         except ValidationError as e:
             return Response({"detail": e.messages[0]}, status=400)
         audit(request, "approve_transaction", txn, box=box.name)
+        if txn.created_by_id != request.user.id:
+            notify(
+                txn.created_by,
+                Notification.Type.TXN_ACCEPTED,
+                f"قُبلت حركتك {txn.reference_code}",
+                f"الأجور المستحقة: {txn.fee_charged} {txn.currency_received}",
+                entity="transaction",
+                entity_id=txn.id,
+            )
+            push_refresh(txn.created_by, "balances")
         return Response(TransactionSerializer(txn).data)
 
     @action(detail=True, methods=["post"])
@@ -174,6 +199,15 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
         except ValidationError as e:
             return Response({"detail": e.messages[0]}, status=400)
         audit(request, "reject_transaction", txn)
+        if txn.created_by_id != request.user.id:
+            notify(
+                txn.created_by,
+                Notification.Type.TXN_REJECTED,
+                f"رُفضت حركتك {txn.reference_code}",
+                "",
+                entity="transaction",
+                entity_id=txn.id,
+            )
         return Response(TransactionSerializer(txn).data)
 
     @action(detail=True, methods=["post"])
@@ -186,6 +220,16 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
         except ValidationError as e:
             return Response({"detail": e.messages[0]}, status=400)
         audit(request, "mark_paid", txn)
+        if txn.created_by_id != request.user.id:
+            notify(
+                txn.created_by,
+                Notification.Type.TXN_PAID,
+                f"قُبضت حركتك {txn.reference_code} نقداً",
+                f"{txn.amount + txn.fee_charged} {txn.currency_received} — صُفّي حسابها",
+                entity="transaction",
+                entity_id=txn.id,
+            )
+            push_refresh(txn.created_by, "balances")
         return Response(TransactionSerializer(txn).data)
 
     @action(detail=True, methods=["post"])
@@ -207,4 +251,14 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
         except ValidationError as e:
             return Response({"detail": e.messages[0]}, status=400)
         audit(request, "reverse_transaction", txn)
+        if txn.created_by_id != request.user.id:
+            notify(
+                txn.created_by,
+                Notification.Type.TXN_REVERSED,
+                f"عُكست/عُدّلت حركتك {txn.reference_code}",
+                "",
+                entity="transaction",
+                entity_id=txn.id,
+            )
+            push_refresh(txn.created_by, "balances")
         return Response(TransactionSerializer(txn).data)

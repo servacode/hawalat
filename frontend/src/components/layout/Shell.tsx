@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { LogoutButton } from "@/components/auth/RoleGuard";
+import { NotificationBell } from "./NotificationBell";
 
 export interface NavItem {
   href: string;
@@ -66,8 +67,11 @@ export function Shell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-border bg-surface px-5 py-4 md:px-8">
           <h1 className="text-xl font-bold">{title}</h1>
-          <div className="md:hidden">
-            <LogoutButton />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="md:hidden">
+              <LogoutButton />
+            </div>
           </div>
         </header>
         <main className="flex-1 px-5 py-6 md:px-8">{children}</main>

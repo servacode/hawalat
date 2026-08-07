@@ -103,9 +103,7 @@ class ScopeTests(BaseReportsTestCase):
 
     def test_small_activity_scoped_to_self(self):
         self.make_accepted()
-        create_small_office(
-            tenant=self.tenant, name="آخر", username="other2", password=PASSWORD
-        )
+        create_small_office(tenant=self.tenant, name="آخر", username="other2", password=PASSWORD)
         self.auth("aleppo")
         res = self.client.get("/api/small/reports/?type=activity")
         self.assertEqual(D(res.data["rows"][0][1]), D("1"))

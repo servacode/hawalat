@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Card, CardBody, EmptyState, Modal, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
+import { onWsEvent } from "@/lib/ws";
 import { getSession } from "@/lib/auth";
 import { balanceTone, formatDateTime, formatMoney } from "@/lib/format";
 import { buildReconciliationMessage, sendToWhatsApp, type ReconciliationRow } from "@/lib/whatsapp";
@@ -32,6 +33,12 @@ export default function SmallBoxesPage() {
       .catch(() => setBalances([]));
   }, []);
   useEffect(load, [load]);
+  useEffect(
+    () => onWsEvent((e) => {
+      if (e.kind === "refresh" && e.scope === "balances") load();
+    }),
+    [load],
+  );
 
   async function openStatement(currency: string) {
     setStFor(currency);

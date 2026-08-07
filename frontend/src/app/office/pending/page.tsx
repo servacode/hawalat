@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
+import { onWsEvent } from "@/lib/ws";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
 interface Txn {
@@ -34,6 +35,13 @@ export default function PendingPage() {
       .catch(() => {});
   }, []);
   useEffect(load, [load]);
+  useEffect(
+    () => onWsEvent((e) => {
+      if (e.kind === "refresh" && e.scope === "pending") load();
+      if (e.kind === "notification" && e.ntype === "txn_new") load();
+    }),
+    [load],
+  );
 
   const dual = processing && processing.currency_received !== processing.currency_delivered;
   const eligibleBoxes = processing

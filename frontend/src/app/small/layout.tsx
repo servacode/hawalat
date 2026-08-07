@@ -9,6 +9,7 @@ const NAV: NavItem[] = [
   { href: "/small/transactions", label: "سجل الحركات", icon: "📚" },
   { href: "/small/boxes", label: "الصناديق", icon: "🏦" },
   { href: "/small/reports", label: "التقارير", icon: "📈" },
+  { href: "/small/alerts", label: "التنبيهات", icon: "📢" },
 ];
 
 export default function SmallLayout({ children }: { children: React.ReactNode }) {
