@@ -99,6 +99,7 @@ cd frontend && npm install && npm run dev
 | [`docs/02-operational-cycle.md`](docs/02-operational-cycle.md) | الدورة التشغيلية الكاملة بكل القيود والحالات |
 | [`docs/03-build-plan.md`](docs/03-build-plan.md) | خطة البناء (13 مرحلة من الأساسات للنشر) |
 | [`docs/04-visual-identity.md`](docs/04-visual-identity.md) | الهوية البصرية ونظام التوكِنز |
+| [`docs/05-phase-log.md`](docs/05-phase-log.md) | سجل المراحل وفحص القبول (لكل مرحلة: الهدف → الإنجاز → الفحص → القرار) |
 
 ---
 
