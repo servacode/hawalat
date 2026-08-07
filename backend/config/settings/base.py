@@ -140,6 +140,20 @@ CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TASK_ALWAYS_EAGER = False
 
+# المهام الدورية (تشغّلها خدمة beat في الإنتاج)
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    "expire-subscriptions-daily": {
+        "task": "apps.admin_panel.tasks.expire_subscriptions",
+        "schedule": crontab(hour=0, minute=15),
+    },
+    "flush-expired-tokens-daily": {
+        "task": "apps.accounts.tasks.flush_expired_tokens",
+        "schedule": crontab(hour=1, minute=0),
+    },
+}
+
 # ---------------------------------------------------------------- DRF + JWT
 
 REST_FRAMEWORK = {

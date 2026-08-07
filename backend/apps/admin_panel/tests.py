@@ -231,3 +231,34 @@ class StatsAndBroadcastTests(BaseAdminTestCase):
         res = self.client.get("/api/admin/audit/")
         actions = [row["action"] for row in res.data]
         self.assertIn("block_big_office", actions)
+
+
+class PeriodicTasksTests(BaseAdminTestCase):
+    def test_expire_subscriptions_task(self):
+        from django.utils import timezone
+
+        from apps.notifications.models import Notification
+
+        from .services import activate_subscription
+        from .tasks import expire_subscriptions
+
+        sub = Subscription.objects.create(tenant=self.big.tenant, package=self.package)
+        activate_subscription(sub, admin_user=self.admin)
+        # انتهت أمس
+        sub.expires_at = timezone.now() - timezone.timedelta(days=1)
+        sub.save(update_fields=["expires_at"])
+
+        count = expire_subscriptions()
+        self.assertEqual(count, 1)
+        sub.refresh_from_db()
+        self.assertEqual(sub.status, Subscription.Status.EXPIRED)
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.big, title__contains="انتهت باقتك").exists()
+        )
+        # لا تكرار في التشغيل التالي
+        self.assertEqual(expire_subscriptions(), 0)
+
+    def test_flush_tokens_task_runs(self):
+        from apps.accounts.tasks import flush_expired_tokens
+
+        flush_expired_tokens()  # يكفي ألا يرمي خطأ

@@ -104,6 +104,11 @@ export default function LoginPage() {
         <p className="mt-6 text-center text-sm text-muted">
           لا تملك حساباً؟ فتح الحسابات يتم عبر مكتبك أو إدارة المنصة.
         </p>
+        <p className="mt-2 text-center text-sm">
+          <a href="/terms" className="text-brand-700 hover:underline">
+            الشروط وسياسة الاستخدام
+          </a>
+        </p>
       </div>
 
       <Modal
