@@ -65,6 +65,31 @@
 
 ---
 
+## 🚀 التشغيل (بيئة التطوير)
+
+```bash
+# 1) انسخ متغيرات البيئة
+cp .env.example .env
+
+# 2) شغّل كل شيء بأمر واحد (PostgreSQL + Redis + Backend + Worker + Frontend)
+docker compose up --build
+```
+
+- الواجهة: http://localhost:3000 · الـ API: http://localhost:8000 · فحص الصحة: `/api/health/`
+
+**بلا Docker** (تطوير سريع — يستخدم sqlite تلقائياً):
+
+```bash
+# Backend
+cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements/dev.txt
+.venv/bin/python manage.py migrate && .venv/bin/python manage.py runserver
+
+# Frontend
+cd frontend && npm install && npm run dev
+```
+
+---
+
 ## 📚 التوثيق
 
 | الملف | المحتوى |

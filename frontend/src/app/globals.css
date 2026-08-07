@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+/*
+  حوالات — طبقة التوكِنز المركزية (المرحلة 0: الأساس)
+  =====================================================
+  المصدر الوحيد للألوان والخطوط. التفصيل الكامل يُبنى في المرحلة 1
+  وفق docs/04-visual-identity.md — لا ألوان يدوية خارج هذه الطبقة.
+*/
+
+:root {
+  /* الوضع الفاتح */
+  --brand-600: #0d9488;
+  --brand-700: #0f766e;
+  --accent: #c79a3a;
+  --ink: #0f172a;
+  --muted: #5b6b7d;
+  --border: #e4e9f0;
+  --bg: #f5f8f8;
+  --surface: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-600: #14b8a6;
+    --brand-700: #0d9488;
+    --accent: #e0b558;
+    --ink: #e6edf3;
+    --muted: #93a4b5;
+    --border: #22304a;
+    --bg: #0a111e;
+    --surface: #131c2e;
+  }
+}
+
+@theme inline {
+  --color-brand: var(--brand-600);
+  --color-brand-strong: var(--brand-700);
+  --color-accent: var(--accent);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --font-sans: var(--font-tajawal), system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-tajawal), system-ui, sans-serif;
+  font-feature-settings: "tnum";
+}
