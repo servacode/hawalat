@@ -15,6 +15,8 @@ import sys  # noqa: E402
 
 if "test" in sys.argv:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+    # تعطيل تحديد المعدّل في الاختبارات (يُختبر صراحةً بـ override_settings)
+    REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_THROTTLE_CLASSES": ()}  # noqa: F405
 
 # طبقة قنوات داخل الذاكرة عند غياب Redis (تطوير محلي/E2E بعملية واحدة)
 if not os.environ.get("REDIS_URL"):  # noqa: F405

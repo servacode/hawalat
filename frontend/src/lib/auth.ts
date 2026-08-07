@@ -51,6 +51,36 @@ export function clearSession(): void {
   sessionStorage.removeItem(KEY);
 }
 
+/** أين حُفظت الجلسة الحالية؟ (للحفاظ على وضع «تذكّرني» عند التجديد) */
+export function sessionRemembered(): boolean {
+  return typeof window !== "undefined" && localStorage.getItem(KEY) !== null;
+}
+
+/** يجدّد access باستخدام refresh — يعيد الجلسة الجديدة أو null (انتهت). */
+export async function refreshSession(): Promise<Session | null> {
+  const session = getSession();
+  if (!session) return null;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  try {
+    const res = await fetch(`${API_URL}/api/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: session.refresh }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { access: string; refresh?: string };
+    const next: Session = {
+      ...session,
+      access: data.access,
+      refresh: data.refresh ?? session.refresh, // التدوير يعيد refresh جديداً
+    };
+    saveSession(next, sessionRemembered());
+    return next;
+  } catch {
+    return null;
+  }
+}
+
 /** الوجهة الرئيسية لكل دور — التوجيه الموحّد بعد الدخول */
 export function roleHome(role: Role): string {
   switch (role) {

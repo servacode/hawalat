@@ -4,7 +4,7 @@
  * فتستمع أي شاشة دون فتح اتصالات إضافية. إعادة اتصال تلقائية.
  */
 
-import { getSession } from "./auth";
+import { getSession, refreshSession } from "./auth";
 
 export interface WsEvent {
   kind: "hello" | "notification" | "refresh";
@@ -36,7 +36,11 @@ export function connectWs(): void {
     socket = null;
     if (getSession()) {
       if (retryTimer) clearTimeout(retryTimer);
-      retryTimer = setTimeout(connectWs, 3000);
+      // تجديد التوكن قبل إعادة الاتصال (جلسات WS الطويلة — دين م8)
+      retryTimer = setTimeout(async () => {
+        await refreshSession();
+        connectWs();
+      }, 3000);
     }
   };
 }

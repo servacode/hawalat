@@ -4,7 +4,7 @@
  */
 
 import { api, ApiError } from "./api";
-import { clearSession, getSession } from "./auth";
+import { clearSession, getSession, refreshSession } from "./auth";
 
 export async function authedApi<T>(
   path: string,
@@ -19,6 +19,11 @@ export async function authedApi<T>(
     return await api<T>(path, { ...options, token: session.access });
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
+      // تجديد تلقائي ثم إعادة محاولة واحدة — وإلا خروج نظيف
+      const renewed = await refreshSession();
+      if (renewed) {
+        return api<T>(path, { ...options, token: renewed.access });
+      }
       clearSession();
       window.location.href = "/login";
     }

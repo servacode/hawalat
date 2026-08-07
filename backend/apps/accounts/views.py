@@ -24,6 +24,25 @@ __all__ = ["LoginView", "TokenRefreshView"]
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
+    throttle_scope = "login"
+
+
+class LogoutView(APIView):
+    """خروج آمن: يُبطل refresh نهائياً (blacklist) — التوكن المسروق يموت معه."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        token = request.data.get("refresh")
+        if token:
+            try:
+                RefreshToken(token).blacklist()
+            except TokenError:
+                pass  # منتهٍ/مبطَل مسبقاً — الخروج يمضي
+        return Response({"detail": "تم تسجيل الخروج."})
 
 
 class MeView(APIView):
@@ -95,6 +114,7 @@ class RegisterView(APIView):
     """تسجيل ذاتي لمكتب كبير — خلف مفتاح الأدمن (معطّل افتراضياً)."""
 
     permission_classes = [AllowAny]
+    throttle_scope = "register"
 
     @transaction.atomic
     def post(self, request):

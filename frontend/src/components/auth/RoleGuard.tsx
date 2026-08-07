@@ -42,7 +42,20 @@ export function LogoutButton() {
   const router = useRouter();
   return (
     <button
-      onClick={() => {
+      onClick={async () => {
+        const session = getSession();
+        if (session) {
+          // إبطال refresh نهائياً على الخادم (blacklist) — لا ننتظر النتيجة طويلاً
+          const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+          fetch(`${API_URL}/api/auth/logout/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access}`,
+            },
+            body: JSON.stringify({ refresh: session.refresh }),
+          }).catch(() => {});
+        }
         clearSession();
         router.replace("/login");
       }}
