@@ -1,0 +1,76 @@
+# حوالات — نشر تجريبي مجاني بنقرة واحدة على Render.com
+# ==========================================================
+# الدليل الكامل: docs/07-free-hosting.md
+#
+# ⚠️ الأسماء أدناه تصبح روابط عامة (hawalat-api-demo.onrender.com...).
+# إن كانت محجوزة لغيرك سيضيف Render لاحقة عشوائية — عندها حدّث المتغيرات
+# الأربعة المشار إليها بـ (†) من لوحة Render وأعد نشر الواجهة.
+
+databases:
+  - name: hawalat-db
+    plan: free
+    region: frankfurt
+
+services:
+  # Redis (قنوات + مهام + كاش المعدّل)
+  - type: keyvalue
+    name: hawalat-redis
+    plan: free
+    region: frankfurt
+    ipAllowList: []
+
+  # الباكند: خدمة واحدة تجمع Daphne (HTTP+WS) + Celery worker + beat
+  - type: web
+    name: hawalat-api-demo
+    runtime: python
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    buildCommand: pip install -r requirements/prod.txt && python manage.py collectstatic --no-input
+    startCommand: bash render-start.sh
+    healthCheckPath: /api/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.prod
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS # (†)
+        value: hawalat-api-demo.onrender.com
+      - key: CORS_ALLOWED_ORIGINS # (†)
+        value: https://hawalat-app-demo.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS # (†)
+        value: https://hawalat-api-demo.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hawalat-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: hawalat-redis
+          property: connectionString
+      - key: BOOTSTRAP_ADMIN_USERNAME
+        value: admin
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false # ← ستُسأل عنها عند النشر (8+ أحرف غير شائعة)
+
+  # الواجهة (Next.js standalone)
+  - type: web
+    name: hawalat-app-demo
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: frontend
+    buildCommand: npm ci && npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
+    startCommand: node .next/standalone/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: NEXT_PUBLIC_API_URL # (†)
+        value: https://hawalat-api-demo.onrender.com
+      - key: NEXT_PUBLIC_WS_URL # (†)
+        value: wss://hawalat-api-demo.onrender.com

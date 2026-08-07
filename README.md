@@ -101,6 +101,7 @@ cd frontend && npm install && npm run dev
 | [`docs/04-visual-identity.md`](docs/04-visual-identity.md) | الهوية البصرية ونظام التوكِنز |
 | [`docs/05-phase-log.md`](docs/05-phase-log.md) | سجل المراحل وفحص القبول (لكل مرحلة: الهدف → الإنجاز → الفحص → القرار) |
 | [`docs/06-deployment.md`](docs/06-deployment.md) | دليل النشر والتشغيل خطوة بخطوة (خادم، TLS، بوت الواتساب، نسخ احتياطي) |
+| [`docs/07-free-hosting.md`](docs/07-free-hosting.md) | **النشر التجريبي المجاني** على Render بنقرة واحدة (render.yaml) |
 
 ---
 

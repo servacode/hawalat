@@ -97,9 +97,13 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # ---------------------------------------------------------------- قاعدة البيانات
 
-# PostgreSQL عبر متغيرات البيئة، مع sqlite احتياطاً للتطوير السريع بلا Docker
+# ترتيب اختيار القاعدة: DATABASE_URL (استضافات مُدارة) ← POSTGRES_HOST (compose)
+# ← sqlite (تطوير سريع بلا Docker)
+_db_url = os.environ.get("DATABASE_URL")
 _pg_host = os.environ.get("POSTGRES_HOST")
-if _pg_host:
+if _db_url:
+    DATABASES = {"default": dj_database_url.parse(_db_url, conn_max_age=60)}
+elif _pg_host:
     DATABASES = {
         "default": dj_database_url.parse(
             "postgres://{user}:{password}@{host}:{port}/{db}".format(

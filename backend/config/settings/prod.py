@@ -4,6 +4,13 @@ from .base import *  # noqa: F403
 
 DEBUG = False
 
+# أصول CSRF الموثوقة (مطلوبة خلف بروكسي TLS للوحة الإدارة)
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")  # noqa: F405
+    if o.strip()
+]
+
 # أمان الإنتاج
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
