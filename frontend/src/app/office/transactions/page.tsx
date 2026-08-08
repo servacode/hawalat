@@ -4,7 +4,7 @@
 
 import { Banknote, Building2, CalendarDays, Check, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, MapPin, PackageCheck, Pencil, RefreshCw, Undo2, UserCheck, Wallet } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Pagination, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Pagination, Select, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
 import { DoneCheck } from "@/components/transactions/DoneCheck";
 import { TxnField } from "@/components/transactions/TxnField";
@@ -43,10 +43,17 @@ function cardToServerParams(key: string): string {
   return "";
 }
 
+interface MemberOpt { id: number; name: string }
+
 export default function OfficeHistoryPage() {
   const [txns, setTxns] = useState<Txn[] | null>(null);
   const [q, setQ] = useState("");
   const [approval, setApproval] = useState("");
+  // فلاتر المكتب والفترة (ملاحظة 53)
+  const [members, setMembers] = useState<MemberOpt[]>([]);
+  const [memberId, setMemberId] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
   const [editFor, setEditFor] = useState<Txn | null>(null);
   const [editForm, setEditForm] = useState({ amount: "", fee_cost: "", fee_charged: "" });
@@ -55,11 +62,17 @@ export default function OfficeHistoryPage() {
   const load = useCallback(() => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
+    if (memberId) params.set("created_by", memberId);
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
     authedApi<Txn[]>(`/api/office/transactions/history/?${params}`)
       .then(setTxns)
       .catch(() => {});
-  }, [q]);
+  }, [q, memberId, dateFrom, dateTo]);
   useEffect(load, [load]);
+  useEffect(() => {
+    authedApi<MemberOpt[]>("/api/office/members/").then(setMembers).catch(() => {});
+  }, []);
 
   // الفلترة بالحالة محلياً — حتى تبقى أرقام الكروت شاملة دائماً
   const activeDef = STATUS_CARDS.find((d) => d.key === approval);
@@ -70,6 +83,9 @@ export default function OfficeHistoryPage() {
   function exportFile(fmt: "xlsx" | "pdf") {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
+    if (memberId) params.set("created_by", memberId);
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
     const extra = cardToServerParams(approval);
     const qs = [params.toString(), extra, `export=${fmt}`].filter(Boolean).join("&");
     authedDownload(`/api/office/transactions/history/?${qs}`, `سجل-الحركات.${fmt}`);
@@ -148,6 +164,22 @@ export default function OfficeHistoryPage() {
         <div className="min-w-48 flex-1">
           <Input label="بحث" placeholder="مرجع / مرسِل / مستفيد / وجهة" value={q}
             onChange={(e) => setQ(e.target.value)} />
+        </div>
+        {/* فلتر مكتب معيّن وفترة محددة (ملاحظة 53) */}
+        <div className="min-w-40">
+          <Select label="المكتب"
+            options={[{ value: "", label: "كل المكاتب" },
+              ...members.map((m) => ({ value: String(m.id), label: m.name }))]}
+            value={memberId}
+            onChange={(e) => setMemberId(e.target.value)} />
+        </div>
+        <div className="min-w-36">
+          <Input label="من تاريخ" type="date" value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)} />
+        </div>
+        <div className="min-w-36">
+          <Input label="إلى تاريخ" type="date" value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)} />
         </div>
         <Button variant="ghost" onClick={load}><RefreshCw className="size-4" />تحديث</Button>
         <Button variant="accent" onClick={() => exportFile("xlsx")}><FileSpreadsheet className="size-4" />Excel</Button>

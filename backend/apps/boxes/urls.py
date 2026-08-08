@@ -11,6 +11,7 @@ from .views import (
     MyBalancesView,
     ReconciliationView,
     ReverseEntryView,
+    MemberPaymentView,
     ShopCashView,
     SmallCurrenciesView,
     SmallStatementView,
@@ -24,6 +25,7 @@ router.register("credit-limits", CreditLimitViewSet, basename="credit-limits")
 urlpatterns = [
     path("office/", include(router.urls)),
     path("office/shop-cash/", ShopCashView.as_view(), name="shop-cash"),
+    path("office/shop-cash/payments/", MemberPaymentView.as_view(), name="shop-cash-payment"),
     path(
         "office/entries/<int:entry_id>/reverse/", ReverseEntryView.as_view(), name="reverse-entry"
     ),

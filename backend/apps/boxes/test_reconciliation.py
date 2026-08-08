@@ -246,10 +246,38 @@ class MembersTests(BaseRecTestCase):
         self.auth("damascus")
         res = self.client.get(f"/api/office/members/{self.small.pk}/statement/?currency=USD")
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(D(res.data["balance"]), D("-300"))
         self.assertEqual(len(res.data["lines"]), 1)
+        self.assertEqual(res.data["lines"][0]["currency"], "USD")
+
+        # بلا عملة = كل الحركات بكل العملات (ملاحظة 52) + فلتر الفترة يعمل
+        res = self.client.get(f"/api/office/members/{self.small.pk}/statement/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data["lines"]), 1)
+        res = self.client.get(
+            f"/api/office/members/{self.small.pk}/statement/?date_from=2030-01-01"
+        )
+        self.assertEqual(len(res.data["lines"]), 0)
+
+        # دفعة نقدية يدوية (ملاحظة 54): تدخل المحل وتُنقص ما عليه — والملاحظة إلزامية
+        no_memo = self.client.post(
+            "/api/office/shop-cash/payments/",
+            {"member": self.small.pk, "currency": "USD", "amount": "100"},
+            format="json",
+        )
+        self.assertEqual(no_memo.status_code, 400)
+        ok = self.client.post(
+            "/api/office/shop-cash/payments/",
+            {"member": self.small.pk, "currency": "USD", "amount": "100", "memo": "دفعة بيد أحمد"},
+            format="json",
+        )
+        self.assertEqual(ok.status_code, 201)
+        from .services import get_shop_cash_account, get_small_office_account
+
+        self.assertEqual(get_shop_cash_account(self.tenant, "USD").balance, D("100"))
+        self.assertEqual(get_small_office_account(self.small, "USD").balance, D("-400"))
 
         self.auth("aleppo")
         res = self.client.get("/api/small/statement/?currency=USD")
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(D(res.data["balance"]), D("-300"))
+        # 300 اعتماد + 100 دفعة نقدية = 400 له
+        self.assertEqual(D(res.data["balance"]), D("-400"))

@@ -232,6 +232,26 @@ STATEMENT_KIND_LABELS = {
 }
 
 
+def receive_member_payment(*, member, currency: str, amount: Decimal, memo: str):
+    """
+    دفعة نقدية يدوية من مكتب صغير (ملاحظة 54): جلب كاشاً للمحل —
+    تدخل صندوق المحل وتُنقص ما عليه، مع ملاحظة إلزامية في القيد.
+    """
+    if amount <= 0:
+        raise ValidationError("مبلغ الدفعة يجب أن يكون موجباً.")
+    shop = get_shop_cash_account(member.tenant, currency)
+    small_account = get_small_office_account(member, currency)
+    return post_entry(
+        tenant=member.tenant,
+        entry_type=JournalEntry.EntryType.SETTLEMENT,
+        memo=f"قبض دفعة نقدية من {member.first_name or member.username}: {memo}",
+        lines=[
+            (shop, amount, Decimal("0")),  # مدين: نقد دخل المحل
+            (small_account, Decimal("0"), amount),  # دائن: نقص ما على الصغير
+        ],
+    )
+
+
 def classify_statement_line(entry_type: str, memo: str) -> tuple[str, str]:
     """يعيد (kind, note): النوع المصنّف والبيان النظيف — المرجع إن وُجد وإلا الملاحظة."""
     memo = memo or ""

@@ -36,7 +36,7 @@ interface HistoryRec {
   rows: { currency: string; balance: string }[];
 }
 interface StatementLine {
-  id: number; kind: string; note: string; memo: string;
+  id: number; currency: string; kind: string; note: string; memo: string;
   debit: string; credit: string; at: string;
 }
 
@@ -61,8 +61,10 @@ export default function MemberProfilePage() {
   const [reconSent, setReconSent] = useState(false);
   const [reconError, setReconError] = useState<string | null>(null);
   const [sendBusy, setSendBusy] = useState(false);
-  // كشف الحساب
+  // كشف الحساب (ملاحظة 52): كل الحركات افتراضياً + فلاتر عملة/فترة
   const [stCurrency, setStCurrency] = useState("");
+  const [stFrom, setStFrom] = useState("");
+  const [stTo, setStTo] = useState("");
   const [stLines, setStLines] = useState<StatementLine[] | null>(null);
   const stPager = usePagination(stLines ?? [], 10);
   // سجل المطابقات
@@ -92,16 +94,19 @@ export default function MemberProfilePage() {
   }, [memberId]);
   useEffect(load, [load]);
 
-  // كشف الحساب حسب العملة المختارة
+  // كشف الحساب: يُجلب دائماً — كل الحركات، ويضيق بالعملة/الفترة
   useEffect(() => {
-    if (!stCurrency) return;
     setStLines(null);
+    const params = new URLSearchParams();
+    if (stCurrency) params.set("currency", stCurrency);
+    if (stFrom) params.set("date_from", stFrom);
+    if (stTo) params.set("date_to", stTo);
     authedApi<{ lines: StatementLine[] }>(
-      `/api/office/members/${memberId}/statement/?currency=${stCurrency}`,
+      `/api/office/members/${memberId}/statement/?${params.toString()}`,
     )
       .then((d) => setStLines(d.lines))
       .catch(() => setStLines([]));
-  }, [memberId, stCurrency]);
+  }, [memberId, stCurrency, stFrom, stTo]);
 
   async function sendRecon() {
     if (!recon || !member || sendBusy) return;
@@ -215,6 +220,10 @@ export default function MemberProfilePage() {
     }, 1200);
   }
 
+  // تغييرات مالية منذ آخر مطابقة؟ (ملاحظة 56) — بلا تغيير: زر المطابقة مقفل
+  const hasChanges =
+    !!recon && recon.rows.some((r) => Number(r.debits) !== 0 || Number(r.credits) !== 0);
+
   if (notFound) return <EmptyState title="المكتب غير موجود" action={<Link href="/office/members" className="text-brand-700 hover:underline">عودة إلى الحسابات</Link>} />;
   if (!member) return <Skeleton className="h-72" />;
 
@@ -245,7 +254,8 @@ export default function MemberProfilePage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="accent" disabled={sendBusy} onClick={sendRecon}>
+          <Button variant="accent" disabled={sendBusy || !hasChanges} onClick={sendRecon}
+            title={hasChanges ? undefined : "لا تغييرات مالية منذ آخر مطابقة — يتفعّل مع أول حركة"}>
             <MessageCircle className="size-4" />
             {sendBusy ? "جارٍ الإرسال…" : "إرسال مطابقة"}
           </Button>
@@ -374,15 +384,19 @@ export default function MemberProfilePage() {
       <Card>
         <CardHeader><CardTitle>كشف الحساب</CardTitle></CardHeader>
         <CardBody className="flex flex-col gap-3">
-          <div className="max-w-64">
-            <Select label="العملة" placeholder="اختر العملة"
-              options={currencies.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))}
+          {/* شريط الفلاتر (ملاحظة 52): كل الحركات افتراضياً — عملة + فترة */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Select label="العملة"
+              options={[{ value: "", label: "كل العملات" },
+                ...currencies.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))]}
               value={stCurrency}
               onChange={(e) => setStCurrency(e.target.value)} />
+            <Input label="من تاريخ" type="date" value={stFrom}
+              onChange={(e) => setStFrom(e.target.value)} />
+            <Input label="إلى تاريخ" type="date" value={stTo}
+              onChange={(e) => setStTo(e.target.value)} />
           </div>
-          {!stCurrency ? (
-            <p className="text-sm text-muted">اختر عملة لعرض حركات حساب المكتب فيها.</p>
-          ) : !stLines ? (
+          {!stLines ? (
             <Skeleton className="h-32" />
           ) : stLines.length === 0 ? (
             <EmptyState title="لا حركات بهذه العملة" />
@@ -390,12 +404,13 @@ export default function MemberProfilePage() {
             <>
               <Table>
                 <THead>
-                  <TR><TH>النوع</TH><TH>البيان</TH><TH>عليه</TH><TH>له</TH><TH>التاريخ</TH></TR>
+                  <TR><TH>النوع</TH><TH>العملة</TH><TH>البيان</TH><TH>عليه</TH><TH>له</TH><TH>التاريخ</TH></TR>
                 </THead>
                 <TBody>
                   {stPager.slice.map((l) => (
-                    <TR key={l.id}>
+                    <TR key={`${l.currency}-${l.id}`}>
                       <TD><Badge status={KIND_BADGE[l.kind] ?? "delivered"}>{KIND_LABEL[l.kind] ?? "تسوية"}</Badge></TD>
+                      <TD className="font-medium">{l.currency}</TD>
                       <TD className="max-w-72 truncate">{l.note || l.memo || "—"}</TD>
                       <TD className="tnum text-neg">{Number(l.debit) ? formatMoney(l.debit) : "—"}</TD>
                       <TD className="tnum text-pos">{Number(l.credit) ? formatMoney(l.credit) : "—"}</TD>

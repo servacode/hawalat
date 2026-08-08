@@ -27,6 +27,7 @@ from .serializers import (
     CreditLimitSerializer,
     CurrencySerializer,
     IntermediaryBoxSerializer,
+    MemberPaymentSerializer,
     SettlementSerializer,
 )
 from .services import (
@@ -35,6 +36,7 @@ from .services import (
     get_box_account,
     get_shop_cash_account,
     get_small_office_account,
+    receive_member_payment,
     reverse_entry,
     withdraw_from_box,
 )
@@ -354,6 +356,47 @@ class ShopCashView(APIView):
         return Response({"balances": balances})
 
 
+class MemberPaymentView(APIView):
+    """دفعة نقدية يدوية من مكتب صغير (ملاحظة 54): تدخل صندوق المحل بقيد وملاحظة."""
+
+    permission_classes = [IsAuthenticated, IsBigOffice]
+
+    def post(self, request):
+        serializer = MemberPaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        member = User.objects.filter(
+            pk=data["member"], tenant=request.user.tenant, role=User.Role.SMALL_OFFICE
+        ).first()
+        if member is None:
+            return Response({"detail": "المكتب غير موجود ضمن مكاتبك."}, status=400)
+        try:
+            entry = receive_member_payment(
+                member=member,
+                currency=data["currency"],
+                amount=data["amount"],
+                memo=data["memo"],
+            )
+        except ValidationError as e:
+            return Response({"detail": e.messages[0]}, status=400)
+        audit(
+            request,
+            "member_payment",
+            "shop_cash",
+            entry.pk,
+            member=member.office_code,
+            amount=str(data["amount"]),
+            currency=data["currency"],
+        )
+        notify(
+            member,
+            Notification.Type.SETTLEMENT,
+            "استلمنا دفعتك النقدية",
+            f"سُجّلت دفعة {fmt(data['amount'])} {data['currency']} — {data['memo']}",
+        )
+        return Response({"detail": "سُجّلت الدفعة في القيد."}, status=status.HTTP_201_CREATED)
+
+
 class SmallCurrenciesView(APIView):
     """المكتب الصغير: قراءة عملات مستأجره (لاختيار العملة في الإرسال)."""
 
@@ -582,29 +625,64 @@ class SmallStatementView(APIView):
 
 
 class MemberStatementView(APIView):
-    """كشف حساب عضو (مكتب صغير) بعملة محددة — للكبير."""
+    """
+    كشف حساب عضو (مكتب صغير) — للكبير.
+    بلا عملة = كل حركاته بكل العملات (ملاحظة 52) + فلتر فترة date_from/date_to.
+    """
 
     permission_classes = [IsAuthenticated, IsBigOffice]
 
     def get(self, request, user_id):
+        from .models import SmallOfficeAccount
+        from .services import classify_statement_line
+
         member = User.objects.filter(
             pk=user_id, tenant=request.user.tenant, role=User.Role.SMALL_OFFICE
         ).first()
         if member is None:
             return Response(status=404)
-        currency = request.query_params.get("currency")
-        if not currency:
-            return Response({"detail": "حدد العملة."}, status=400)
-        account = get_small_office_account(member, currency)
-        data = account_statement(account)
+
+        currency = request.query_params.get("currency") or ""
+        if currency:
+            accounts = {currency: get_small_office_account(member, currency)}
+        else:
+            accounts = {
+                link.currency: link.account
+                for link in SmallOfficeAccount.all_objects.filter(user=member).select_related(
+                    "account"
+                )
+            }
+
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+
+        lines = []
+        for code, account in accounts.items():
+            qs = account.lines.select_related("entry")
+            if date_from:
+                qs = qs.filter(created_at__date__gte=date_from)
+            if date_to:
+                qs = qs.filter(created_at__date__lte=date_to)
+            for line in qs.order_by("-created_at", "-id")[:300]:
+                kind, note = classify_statement_line(line.entry.entry_type, line.entry.memo)
+                lines.append(
+                    {
+                        "id": line.id,
+                        "currency": code,
+                        "entry_type": line.entry.entry_type,
+                        "memo": line.entry.memo,
+                        "kind": kind,
+                        "note": note,
+                        "debit": str(line.debit),
+                        "credit": str(line.credit),
+                        "at": line.created_at,
+                    }
+                )
+        lines.sort(key=lambda item: item["at"], reverse=True)
         return Response(
             {
                 "member": member.first_name or member.username,
                 "currency": currency,
-                "balance": str(data["balance"]),
-                "lines": [
-                    {**line, "debit": str(line["debit"]), "credit": str(line["credit"])}
-                    for line in data["lines"]
-                ],
+                "lines": lines[:300],
             }
         )

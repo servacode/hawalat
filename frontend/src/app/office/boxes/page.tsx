@@ -5,10 +5,10 @@
  * تبويبان — صناديق الوسطاء (إضافة/اعتماد/سحب/كشف) وصندوق المحل (نقد لكل عملة + كشف).
  */
 
-import { ChevronLeft, PackagePlus, Plus } from "lucide-react";
+import { ChevronLeft, HandCoins, PackagePlus, Plus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, CardBody, EmptyState, Input, Modal, Skeleton, Tabs } from "@/components/ui";
+import { Button, Card, CardBody, EmptyState, Input, Modal, Select, Skeleton, Tabs } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
 import { balanceTone, formatMoney } from "@/lib/format";
 
@@ -143,29 +143,105 @@ function IntermediaryBoxes() {
 
 // ─────────────────────────────── صندوق المحل
 function ShopCash() {
+  const { currencies } = useCurrencies();
   const [balances, setBalances] = useState<{ currency: string; balance: string }[] | null>(null);
+  const [members, setMembers] = useState<{ id: number; name: string }[]>([]);
+  // دفعة نقدية من مكتب (ملاحظة 54)
+  const [payOpen, setPayOpen] = useState(false);
+  const [payForm, setPayForm] = useState({ member: "", currency: "", amount: "", memo: "" });
+  const [payError, setPayError] = useState<string | null>(null);
+  const [payDone, setPayDone] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     authedApi<{ balances: { currency: string; balance: string }[] }>("/api/office/shop-cash/")
       .then((d) => setBalances(d.balances))
       .catch(() => setBalances([]));
   }, []);
+  useEffect(load, [load]);
+  useEffect(() => {
+    authedApi<{ id: number; name: string }[]>("/api/office/members/").then(setMembers).catch(() => {});
+  }, []);
+
+  async function submitPayment(e: React.FormEvent) {
+    e.preventDefault();
+    setPayError(null);
+    try {
+      await authedApi("/api/office/shop-cash/payments/", {
+        method: "POST",
+        body: { ...payForm, member: Number(payForm.member) },
+      });
+      setPayDone(true);
+      setTimeout(() => {
+        setPayOpen(false);
+        setPayDone(false);
+        setPayForm({ member: "", currency: "", amount: "", memo: "" });
+      }, 1200);
+      load();
+    } catch (err) {
+      const data = (err as { data?: Record<string, string[] | string> })?.data;
+      const first = data && Object.values(data)[0];
+      setPayError((Array.isArray(first) ? first[0] : (first as string)) ?? "تعذر التسجيل — تأكد من البيانات.");
+    }
+  }
 
   if (!balances) return <Skeleton className="h-32" />;
-  if (balances.length === 0) return <EmptyState title="أضف عملات أولاً من قسم الصناديق" />;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {balances.map((b) => (
-        <Card key={b.currency}>
-          <CardBody>
-            <p className="text-sm text-muted">نقد {b.currency}</p>
-            <p className={`tnum mt-1 text-2xl font-bold ${Number(b.balance) > 0 ? "text-pos" : ""}`}>
-              {formatMoney(b.balance)}
-            </p>
-          </CardBody>
-        </Card>
-      ))}
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setPayOpen(true); setPayError(null); }}>
+          <HandCoins className="size-4" />دفعة من مكتب
+        </Button>
+      </div>
+      {balances.length === 0 ? (
+        <EmptyState title="أضف عملات أولاً من قسم الصناديق" />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {balances.map((b) => (
+            <Card key={b.currency}>
+              <CardBody>
+                <p className="text-sm text-muted">نقد {b.currency}</p>
+                <p className={`tnum mt-1 text-2xl font-bold ${Number(b.balance) > 0 ? "text-pos" : ""}`}>
+                  {formatMoney(b.balance)}
+                </p>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* دفعة نقدية من مكتب (ملاحظة 54): تدخل القيد مع ملاحظة إلزامية */}
+      <Modal open={payOpen} onClose={() => setPayOpen(false)} title="دفعة نقدية من مكتب">
+        <form onSubmit={submitPayment} className="flex flex-col gap-4">
+          <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
+            المكتب الصغير جلب نقداً للمحل؟ سجّلها هنا — تدخل صندوق المحل وتُخصم مما عليه بقيد مسجّل.
+          </p>
+          <Select label="المكتب" placeholder="اختر المكتب"
+            options={members.map((m) => ({ value: String(m.id), label: m.name }))}
+            value={payForm.member}
+            onChange={(e) => setPayForm({ ...payForm, member: e.target.value })} required />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select label="العملة" placeholder="اختر العملة"
+              options={currencies.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))}
+              value={payForm.currency}
+              onChange={(e) => setPayForm({ ...payForm, currency: e.target.value })} required />
+            <Input label="المبلغ" type="number" step="0.01" min={0} className="tnum"
+              value={payForm.amount}
+              onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} required />
+          </div>
+          <Input label="الملاحظة (إلزامية)" placeholder="مثال: دفعة نقدية بيد أبو أحمد"
+            value={payForm.memo}
+            onChange={(e) => setPayForm({ ...payForm, memo: e.target.value })} required />
+          {payError && <p className="text-sm text-danger">{payError}</p>}
+          {payDone && <p className="text-sm text-success">سُجّلت الدفعة ✓</p>}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={() => setPayOpen(false)}>إلغاء</Button>
+            <Button type="submit" disabled={!payForm.memo.trim()}>
+              <HandCoins className="size-4" />تسجيل الدفعة
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
