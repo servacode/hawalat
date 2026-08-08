@@ -73,7 +73,16 @@ export default function SmallBoxesPage() {
                 aria-expanded={active}
                 className="text-start focus-visible:outline-2 focus-visible:outline-brand"
               >
-                <Card className={cn("transition-all hover:border-brand/50", active && "border-brand ring-2 ring-brand/30")}>
+                <Card
+                  className={cn(
+                    "transition-all",
+                    // الدلالة اللونية (ملاحظة 14): أحمر = مطلوب منك، أخضر = لك
+                    net < 0 && "border-danger/60 bg-danger/10",
+                    net > 0 && "border-success/60 bg-success/10",
+                    net === 0 && "hover:border-brand/50",
+                    active && "ring-2 ring-brand/40",
+                  )}
+                >
                   <CardBody className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <p className="font-bold">{b.currency}</p>

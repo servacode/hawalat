@@ -90,30 +90,31 @@ class ReconciliationLogicTests(BaseRecTestCase):
             actual = get_small_office_account(self.small, "USD").balance
         self.assertEqual(D(row["balance"]), actual)
 
-    def test_small_reconciles_self_only_when_allowed(self):
-        """ملاحظة التجربة 10: الصغير لا يثبّت مطابقة إلا إذا سمح الكبير من إعداداته."""
+    def test_small_view_and_pdf_only_never_commits(self):
+        """ملاحظة التجربة 14: الصغير يشاهد المطابقة وينزّلها PDF فقط — لا يثبّت أبداً."""
         deposit_to_box(
             tenant=self.tenant, box=self.box, small_user=self.small, currency="USD", amount=D("100")
         )
         self.auth("aleppo")
-        # المعاينة متاحة دائماً — لكن التثبيت ممنوع افتراضياً
+        # المعاينة متاحة — والتثبيت ممنوع دائماً
         res = self.client.get("/api/small/reconciliation/")
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(D(res.data["rows"][0]["balance"]), D("-100"))
         self.assertFalse(res.data["allowed"])
         res = self.client.post("/api/small/reconciliation/")
         self.assertEqual(res.status_code, 403)
-        # الكبير يفعّل الصلاحية من إعداداته → يصبح التثبيت متاحاً
+
+        # الكبير يثبّت — والصغير ينزّل سجلها PDF
         self.auth("damascus")
-        res = self.client.patch(
-            "/api/office/preferences/", {"allow_small_reconciliation": True}, format="json"
-        )
-        self.assertTrue(res.data["allow_small_reconciliation"])
+        rec_id = self.client.post(
+            f"/api/office/members/{self.small.pk}/reconciliation/"
+        ).data["id"]
         self.auth("aleppo")
-        res = self.client.get("/api/small/reconciliation/")
-        self.assertTrue(res.data["allowed"])
-        res = self.client.post("/api/small/reconciliation/")
-        self.assertEqual(res.status_code, 201)
+        res = self.client.get(f"/api/small/reconciliations/{rec_id}/pdf/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res["Content-Type"], "application/pdf")
+        self.assertTrue(res.content.startswith(b"%PDF"))
+        # ولا ينزّل سجل غيره
+        self.assertEqual(self.client.get("/api/small/reconciliations/999999/pdf/").status_code, 404)
 
     def test_reconciliation_history_log(self):
         """ملاحظة التجربة 12: لكل مطابقة سجل بلقطة كاملة يُرجع إليه عند الخطأ."""
@@ -148,14 +149,6 @@ class ReconciliationLogicTests(BaseRecTestCase):
         )
         res = self.client.get(f"/api/office/members/{foreign.pk}/reconciliations/")
         self.assertEqual(res.status_code, 403)
-
-    def test_preferences_endpoint_big_only(self):
-        self.auth("aleppo")
-        self.assertEqual(self.client.get("/api/office/preferences/").status_code, 403)
-        self.auth("damascus")
-        res = self.client.get("/api/office/preferences/")
-        self.assertEqual(res.status_code, 200)
-        self.assertFalse(res.data["allow_small_reconciliation"])
 
     def test_big_commits_member_reconciliation_regardless(self):
         """الكبير يثبّت مطابقة أعضائه دائماً — الصلاحية تخص الصغار فقط."""

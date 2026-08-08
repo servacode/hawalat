@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CreditLimitViewSet,
-    OfficePreferencesView,
+    ReconciliationPdfView,
     ReconciliationHistoryView,
     CurrencyViewSet,
     IntermediaryBoxViewSet,
@@ -24,7 +24,6 @@ router.register("credit-limits", CreditLimitViewSet, basename="credit-limits")
 urlpatterns = [
     path("office/", include(router.urls)),
     path("office/shop-cash/", ShopCashView.as_view(), name="shop-cash"),
-    path("office/preferences/", OfficePreferencesView.as_view(), name="office-preferences"),
     path(
         "office/entries/<int:entry_id>/reverse/", ReverseEntryView.as_view(), name="reverse-entry"
     ),
@@ -36,6 +35,11 @@ urlpatterns = [
         "small/reconciliations/",
         ReconciliationHistoryView.as_view(),
         name="small-reconciliations",
+    ),
+    path(
+        "small/reconciliations/<int:rec_id>/pdf/",
+        ReconciliationPdfView.as_view(),
+        name="small-reconciliation-pdf",
     ),
     path(
         "office/members/<int:user_id>/statement/",
@@ -51,5 +55,10 @@ urlpatterns = [
         "office/members/<int:user_id>/reconciliations/",
         ReconciliationHistoryView.as_view(),
         name="member-reconciliations",
+    ),
+    path(
+        "office/members/<int:user_id>/reconciliations/<int:rec_id>/pdf/",
+        ReconciliationPdfView.as_view(),
+        name="member-reconciliation-pdf",
     ),
 ]

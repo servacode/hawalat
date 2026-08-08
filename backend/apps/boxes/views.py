@@ -264,6 +264,55 @@ class MyBalancesView(APIView):
         return Response({"balances": balances})
 
 
+class ReconciliationPdfView(APIView):
+    """تنزيل سجل مطابقة مثبّت ملف PDF (ملاحظة 14) — الصغير لنفسه والكبير لعضوه."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, rec_id, user_id=None):
+        from django.http import HttpResponse
+
+        from apps.reports.export import to_pdf
+
+        from .models import Reconciliation
+
+        if user_id is None:
+            if request.user.role != User.Role.SMALL_OFFICE:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            target = request.user
+        else:
+            if request.user.role != User.Role.BIG_OFFICE:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            target = User.objects.filter(
+                pk=user_id, tenant=request.user.tenant, role=User.Role.SMALL_OFFICE
+            ).first()
+            if target is None:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+        rec = Reconciliation.all_objects.filter(user=target, pk=rec_id).first()
+        if rec is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        name = target.first_name or target.username
+        report = {
+            "title": f"مطابقة {name} ({target.office_code}) — {rec.created_at:%Y-%m-%d %H:%M}",
+            "columns": ["العملة", "الرصيد السابق", "عليه (الفترة)", "له (الفترة)", "الصافي المثبّت"],
+            "rows": [
+                [
+                    r.get("currency", ""),
+                    r.get("previous", "—"),
+                    r.get("debits", "—"),
+                    r.get("credits", "—"),
+                    r.get("balance", ""),
+                ]
+                for r in rec.snapshot
+            ],
+        }
+        resp = HttpResponse(to_pdf(report), content_type="application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="reconciliation-{rec.pk}.pdf"'
+        return resp
+
+
 class ReconciliationHistoryView(APIView):
     """سجل المطابقات المثبّتة (ملاحظة التجربة 12): مرجع دائم يُعاد إليه عند أي خلاف."""
 
@@ -303,34 +352,6 @@ class ReconciliationHistoryView(APIView):
         )
 
 
-class OfficePreferencesView(APIView):
-    """تفضيلات المكتب الكبير على مستوى المستأجر (صلاحيات مكاتبه الصغيرة)."""
-
-    permission_classes = [IsAuthenticated, IsBigOffice]
-
-    def get(self, request):
-        return Response(
-            {"allow_small_reconciliation": request.user.tenant.allow_small_reconciliation}
-        )
-
-    def patch(self, request):
-        tenant = request.user.tenant
-        if "allow_small_reconciliation" in request.data:
-            tenant.allow_small_reconciliation = bool(request.data["allow_small_reconciliation"])
-            tenant.save(update_fields=["allow_small_reconciliation"])
-            AuditLog.objects.create(
-                tenant=tenant,
-                actor=request.user,
-                action="update_office_preferences",
-                entity="tenant",
-                entity_id=str(tenant.pk),
-                data={"allow_small_reconciliation": tenant.allow_small_reconciliation},
-            )
-        return Response(
-            {"allow_small_reconciliation": tenant.allow_small_reconciliation}
-        )
-
-
 class ReconciliationView(APIView):
     """مطابقة مكتب صغير (المشهد 4) — GET معاينة، POST تثبيت (نقطة إغلاق جديدة)."""
 
@@ -364,9 +385,8 @@ class ReconciliationView(APIView):
                 "office_code": target.office_code,
                 "last_at": data["last_at"],
                 "rows": data["rows"],
-                # هل يستطيع الطالب تثبيت المطابقة؟ (الكبير دائماً — الصغير بإذن مكتبه)
-                "allowed": request.user.role == User.Role.BIG_OFFICE
-                or target.tenant.allow_small_reconciliation,
+                # التثبيت للكبير حصراً (ملاحظة 14) — الصغير مشاهدة وتنزيل فقط
+                "allowed": request.user.role == User.Role.BIG_OFFICE,
             }
         )
 
@@ -376,13 +396,10 @@ class ReconciliationView(APIView):
         target = self._target(request, user_id)
         if target is None:
             return Response(status=status.HTTP_403_FORBIDDEN)
-        # الصغير لا يثبّت مطابقة إلا إذا سمح مكتبه الكبير من الإعدادات (ملاحظة 10)
-        if (
-            request.user.role == User.Role.SMALL_OFFICE
-            and not target.tenant.allow_small_reconciliation
-        ):
+        # التثبيت من المكتب الكبير حصراً (ملاحظة 14) — الصغير يشاهد وينزّل فقط
+        if request.user.role == User.Role.SMALL_OFFICE:
             return Response(
-                {"detail": "تثبيت المطابقة معطّل — يفعّله مكتبك الكبير من إعداداته."},
+                {"detail": "المطابقة تُثبّت من مكتبك فقط — يمكنك مشاهدتها وتنزيلها PDF."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         rec, data = commit_reconciliation(target, created_by=request.user)
