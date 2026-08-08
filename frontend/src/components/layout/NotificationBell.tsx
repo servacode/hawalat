@@ -72,8 +72,9 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute start-0 top-full z-50 mt-2 w-80 rounded-lg border border-border bg-surface shadow-lg">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+        // جوال: لوح ثابت بعرض الشاشة تقريباً (لا يُقص خارجها) — شاشات أوسع: منسدل من الجرس
+        <div className="fixed inset-x-3 top-20 z-50 rounded-xl border border-border bg-surface shadow-lg sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-2 sm:w-96">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <p className="font-bold">الإشعارات</p>
             {unread > 0 && (
               <button onClick={readAll} className="text-sm text-brand-700 hover:underline">
@@ -81,7 +82,7 @@ export function NotificationBell() {
               </button>
             )}
           </div>
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[60vh] overflow-y-auto sm:max-h-96">
             {items.length === 0 ? (
               <p className="px-4 py-8 text-center text-muted">لا إشعارات بعد</p>
             ) : (
@@ -94,11 +95,17 @@ export function NotificationBell() {
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className={cn("text-sm", !n.is_read && "font-bold")}>{n.title}</p>
-                    {!n.is_read && <span className="mt-1 size-2 shrink-0 rounded-full bg-brand" />}
+                    <p className={cn("min-w-0 break-words text-sm leading-6", !n.is_read && "font-bold")}>
+                      {n.title}
+                    </p>
+                    {!n.is_read && <span className="mt-2 size-2 shrink-0 rounded-full bg-brand" />}
                   </div>
-                  {n.body && <p className="mt-0.5 text-sm text-muted">{n.body}</p>}
-                  <p className="tnum mt-1 text-xs text-muted">{formatDateTime(n.at)}</p>
+                  {n.body && (
+                    <p className="mt-0.5 break-words text-sm leading-6 text-muted">{n.body}</p>
+                  )}
+                  <p className="tnum mt-1 text-xs text-muted" dir="ltr" style={{ textAlign: "end" }}>
+                    {formatDateTime(n.at)}
+                  </p>
                 </div>
               ))
             )}
