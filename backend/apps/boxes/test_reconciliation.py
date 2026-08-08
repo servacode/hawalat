@@ -115,6 +115,40 @@ class ReconciliationLogicTests(BaseRecTestCase):
         res = self.client.post("/api/small/reconciliation/")
         self.assertEqual(res.status_code, 201)
 
+    def test_reconciliation_history_log(self):
+        """ملاحظة التجربة 12: لكل مطابقة سجل بلقطة كاملة يُرجع إليه عند الخطأ."""
+        deposit_to_box(
+            tenant=self.tenant, box=self.box, small_user=self.small, currency="USD", amount=D("500")
+        )
+        self.auth("damascus")
+        self.client.post(f"/api/office/members/{self.small.pk}/reconciliation/")
+        deposit_to_box(
+            tenant=self.tenant, box=self.box, small_user=self.small, currency="USD", amount=D("200")
+        )
+        self.client.post(f"/api/office/members/{self.small.pk}/reconciliation/")
+
+        # الصغير يرى سجله كاملاً بالأحدث أولاً وبلقطة تفصيلية
+        self.auth("aleppo")
+        res = self.client.get("/api/small/reconciliations/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data), 2)
+        latest = res.data[0]["rows"][0]
+        for key in ("currency", "previous", "debits", "credits", "balance"):
+            self.assertIn(key, latest)
+        self.assertEqual(D(latest["previous"]), D("-500"))
+        self.assertEqual(D(latest["balance"]), D("-700"))
+
+        # الكبير يرى سجل عضوه — والغريب ممنوع
+        self.auth("damascus")
+        res = self.client.get(f"/api/office/members/{self.small.pk}/reconciliations/")
+        self.assertEqual(len(res.data), 2)
+        other_big = create_big_office(name="غريب", username="strb", password=PASSWORD)
+        foreign = create_small_office(
+            tenant=other_big.tenant, name="غ", username="strs", password=PASSWORD
+        )
+        res = self.client.get(f"/api/office/members/{foreign.pk}/reconciliations/")
+        self.assertEqual(res.status_code, 403)
+
     def test_preferences_endpoint_big_only(self):
         self.auth("aleppo")
         self.assertEqual(self.client.get("/api/office/preferences/").status_code, 403)

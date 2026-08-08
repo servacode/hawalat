@@ -264,6 +264,45 @@ class MyBalancesView(APIView):
         return Response({"balances": balances})
 
 
+class ReconciliationHistoryView(APIView):
+    """سجل المطابقات المثبّتة (ملاحظة التجربة 12): مرجع دائم يُعاد إليه عند أي خلاف."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id=None):
+        from .models import Reconciliation
+
+        # نفس منطق الهدف في ReconciliationView: الصغير نفسه أو عضو عند الكبير
+        if user_id is None:
+            if request.user.role != User.Role.SMALL_OFFICE:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            target = request.user
+        else:
+            if request.user.role != User.Role.BIG_OFFICE:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            target = User.objects.filter(
+                pk=user_id, tenant=request.user.tenant, role=User.Role.SMALL_OFFICE
+            ).first()
+            if target is None:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+        recs = Reconciliation.all_objects.filter(user=target).order_by("-created_at")[:200]
+        return Response(
+            [
+                {
+                    "id": r.pk,
+                    "at": r.created_at,
+                    "by": (r.created_by.first_name or r.created_by.username)
+                    if r.created_by
+                    else "—",
+                    "by_role": r.created_by.role if r.created_by else "",
+                    "rows": r.snapshot,
+                }
+                for r in recs
+            ]
+        )
+
+
 class OfficePreferencesView(APIView):
     """تفضيلات المكتب الكبير على مستوى المستأجر (صلاحيات مكاتبه الصغيرة)."""
 

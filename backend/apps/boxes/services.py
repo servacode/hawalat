@@ -250,10 +250,20 @@ def commit_reconciliation(user, *, created_by):
     from .models import Reconciliation
 
     data = build_reconciliation(user)
+    # اللقطة الكاملة (سابق/مدين/دائن/رصيد) — سجل يُرجع إليه عند أي خلاف (ملاحظة 12)
     rec = Reconciliation.all_objects.create(
         tenant=user.tenant,
         user=user,
         created_by=created_by,
-        snapshot=[{"currency": r["currency"], "balance": r["balance"]} for r in data["rows"]],
+        snapshot=[
+            {
+                "currency": r["currency"],
+                "previous": r["previous"],
+                "debits": r["debits"],
+                "credits": r["credits"],
+                "balance": r["balance"],
+            }
+            for r in data["rows"]
+        ],
     )
     return rec, data
