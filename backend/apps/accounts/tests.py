@@ -213,6 +213,37 @@ class PasswordTests(APITestCase):
         self.assertEqual(res.status_code, 403)
 
 
+class EmailProfileTests(APITestCase):
+    """البريد في الملف الشخصي: قراءة وتحديث وفرادة (ملاحظة 13)."""
+
+    def setUp(self):
+        self.user = create_big_office(
+            name="مكتب دمشق", username="damascus", password="secret12345", email="dam@example.com"
+        )
+        create_big_office(
+            name="آخر", username="otherb", password="secret12345", email="taken@example.com"
+        )
+        res = self.client.post(
+            reverse("auth-login"),
+            {"username": "damascus", "password": "secret12345"},
+            format="json",
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {res.data['access']}")
+
+    def test_me_shows_and_updates_email(self):
+        res = self.client.get(reverse("auth-me"))
+        self.assertEqual(res.data["email"], "dam@example.com")
+        res = self.client.patch(reverse("auth-me"), {"email": "new@example.com"}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["email"], "new@example.com")
+
+    def test_email_invalid_or_taken_rejected(self):
+        res = self.client.patch(reverse("auth-me"), {"email": "غير صالح"}, format="json")
+        self.assertEqual(res.status_code, 400)
+        res = self.client.patch(reverse("auth-me"), {"email": "taken@example.com"}, format="json")
+        self.assertEqual(res.status_code, 400)
+
+
 class AvatarTests(APITestCase):
     """صورة البروفايل: تحديث عبر PATCH /me/ وتظهر في بيانات الجلسة."""
 
@@ -250,6 +281,7 @@ class RegisterTests(APITestCase):
         "office_name": "مكتب جديد",
         "username": "newoffice",
         "phone": "+90500000000",
+        "email": "newoffice@example.com",
         "password": "secret123",
         "password_confirm": "secret123",
         "accept_terms": True,
@@ -275,6 +307,19 @@ class RegisterTests(APITestCase):
             format="json",
         )
         self.assertEqual(login.status_code, 401)
+
+    def test_register_requires_email(self):
+        """البريد إلزامي في التسجيل — سيُعتمد عليه لاستعادة كلمة المرور (ملاحظة 13)."""
+        s = PlatformSettings.load()
+        s.self_registration_enabled = True
+        s.save()
+        payload = {k: v for k, v in self.payload.items() if k != "email"}
+        res = self.client.post(reverse("auth-register"), payload, format="json")
+        self.assertEqual(res.status_code, 400)
+        res = self.client.post(
+            reverse("auth-register"), {**self.payload, "email": "ليس بريداً"}, format="json"
+        )
+        self.assertEqual(res.status_code, 400)
 
     def test_register_requires_terms(self):
         s = PlatformSettings.load()

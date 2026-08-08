@@ -5,7 +5,7 @@
  * صورة بروفايل (تظهر بالتوب بار) + تغيير كلمة المرور.
  */
 
-import { Camera, IdCard, KeyRound, Save, Trash2 } from "lucide-react";
+import { Camera, IdCard, KeyRound, Mail, Save, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Button,
@@ -26,6 +26,7 @@ interface Me {
   office_code: string;
   tenant_name: string | null;
   avatar: string;
+  email: string;
 }
 
 /** يصغّر الصورة إلى 256px ويعيدها data URL مضغوطة — تناسب حد الخادم. */
@@ -71,9 +72,33 @@ export default function SmallSettingsPage() {
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const [email, setEmail] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
   useEffect(() => {
-    authedApi<Me>("/api/auth/me/").then(setMe).catch(() => {});
+    authedApi<Me>("/api/auth/me/").then((d) => {
+      setMe(d);
+      setEmail(d.email);
+    }).catch(() => {});
   }, []);
+
+  async function saveEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailMsg(null);
+    setEmailBusy(true);
+    try {
+      const next = await authedApi<Me>("/api/auth/me/", { method: "PATCH", body: { email } });
+      setMe(next);
+      setEmail(next.email);
+      setEmailMsg({ ok: true, text: "حُفظ البريد الإلكتروني." });
+    } catch (err) {
+      const detail = (err as { data?: { email?: string } })?.data?.email;
+      setEmailMsg({ ok: false, text: detail ?? "تعذر الحفظ — تأكد من صيغة البريد." });
+    } finally {
+      setEmailBusy(false);
+    }
+  }
 
   async function saveAvatar(avatar: string) {
     setAvatarBusy(true);
@@ -172,10 +197,49 @@ export default function SmallSettingsPage() {
           <Input label="اسم المكتب" value={name} disabled readOnly />
           <Input label="كود المكتب" value={me.office_code} disabled readOnly dir="ltr" className="tnum" />
           <Input label="اسم المستخدم" value={me.username} disabled readOnly dir="ltr" />
-          <Input label="المكتب الكبير التابع له" value={me.tenant_name ?? "—"} disabled readOnly />
+          <Input label="المكتب التابع له" value={me.tenant_name ?? "—"} disabled readOnly />
           <p className="text-sm text-muted sm:col-span-2">
-            هذه البيانات يديرها مكتبك الكبير — تواصل معه لأي تعديل.
+            {`هذه البيانات يديرها مكتب ${me.tenant_name ?? "—"} — تواصل معه لأي تعديل.`}
           </p>
+        </CardBody>
+      </Card>
+
+      {/* البريد الإلكتروني */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="size-5 text-brand" /> البريد الإلكتروني
+          </CardTitle>
+        </CardHeader>
+        <CardBody>
+          <form onSubmit={saveEmail} className="flex flex-col gap-3">
+            <Input
+              label="بريدك الإلكتروني"
+              type="email"
+              icon={Mail}
+              dir="ltr"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              hint="سيُعتمد عليه لاستعادة كلمة المرور — احرص أن يكون صحيحاً وتملكه فعلاً."
+            />
+            {emailMsg && (
+              <p
+                className={
+                  emailMsg.ok
+                    ? "rounded-md bg-success/10 px-3 py-2 text-sm text-success"
+                    : "rounded-md bg-danger/10 px-3 py-2 text-sm text-danger"
+                }
+              >
+                {emailMsg.text}
+              </p>
+            )}
+            <div>
+              <Button type="submit" disabled={emailBusy || email === me.email}>
+                <Save className="size-4" /> {emailBusy ? "جارٍ الحفظ…" : "حفظ البريد"}
+              </Button>
+            </div>
+          </form>
         </CardBody>
       </Card>
 

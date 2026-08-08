@@ -43,7 +43,9 @@ def generate_small_office_code(tenant: Tenant) -> str:
 
 
 @transaction.atomic
-def create_big_office(*, name: str, username: str, password: str, phone: str = "") -> User:
+def create_big_office(
+    *, name: str, username: str, password: str, phone: str = "", email: str = ""
+) -> User:
     """ينشئ مستأجراً (مكتباً كبيراً) + مستخدمه الوحيد بكود مولّد."""
     from apps.boxes.services import seed_default_currencies
 
@@ -57,6 +59,7 @@ def create_big_office(*, name: str, username: str, password: str, phone: str = "
         tenant=tenant,
         office_code=code,
         phone=phone,
+        email=email,
         first_name=name,
     )
 
@@ -69,6 +72,7 @@ def create_small_office(
     username: str,
     password: str,
     phone: str = "",
+    email: str = "",
     whatsapp_group_name: str = "",
     whatsapp_group_link: str = "",
     whatsapp_chat_id: str = "",
@@ -81,6 +85,7 @@ def create_small_office(
         tenant=tenant,
         office_code=generate_small_office_code(tenant),
         phone=phone,
+        email=email,
         whatsapp_group_name=whatsapp_group_name,
         whatsapp_group_link=whatsapp_group_link,
         whatsapp_chat_id=whatsapp_chat_id,

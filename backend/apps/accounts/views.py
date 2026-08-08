@@ -1,5 +1,7 @@
 """حوالات — نقاط المصادقة والهوية."""
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -54,16 +56,30 @@ class MeView(APIView):
         return Response(MeSerializer(request.user).data)
 
     def patch(self, request):
-        """تحديث الملف الشخصي — صورة البروفايل فقط (data URL أو "" للإزالة)."""
-        if "avatar" not in request.data:
+        """تحديث الملف الشخصي: صورة البروفايل و/أو البريد (يُعتمد عليه لاستعادة كلمة المرور)."""
+        fields = []
+        if "avatar" in request.data:
+            avatar = request.data.get("avatar") or ""
+            if avatar and not avatar.startswith("data:image/"):
+                return Response({"avatar": "صيغة الصورة غير صالحة."}, status=400)
+            if len(avatar) > self.MAX_AVATAR_CHARS:
+                return Response({"avatar": "الصورة كبيرة جداً."}, status=400)
+            request.user.avatar = avatar
+            fields.append("avatar")
+        if "email" in request.data:
+            email = (request.data.get("email") or "").strip()
+            if email:
+                try:
+                    validate_email(email)
+                except DjangoValidationError:
+                    return Response({"email": "صيغة البريد غير صالحة."}, status=400)
+                if User.objects.exclude(pk=request.user.pk).filter(email__iexact=email).exists():
+                    return Response({"email": "البريد الإلكتروني مستخدم مسبقاً."}, status=400)
+            request.user.email = email
+            fields.append("email")
+        if not fields:
             return Response({"detail": "لا شيء لتحديثه."}, status=400)
-        avatar = request.data.get("avatar") or ""
-        if avatar and not avatar.startswith("data:image/"):
-            return Response({"avatar": "صيغة الصورة غير صالحة."}, status=400)
-        if len(avatar) > self.MAX_AVATAR_CHARS:
-            return Response({"avatar": "الصورة كبيرة جداً."}, status=400)
-        request.user.avatar = avatar
-        request.user.save(update_fields=["avatar"])
+        request.user.save(update_fields=fields)
         return Response(MeSerializer(request.user).data)
 
 
@@ -146,6 +162,7 @@ class RegisterView(APIView):
             username=data["username"],
             password=data["password"],
             phone=data["phone"],
+            email=data["email"],
         )
         # يُنشأ موقوفاً بانتظار تفعيل الأدمن (الدفع اليدوي ثم التفعيل — الجزء 18)
         user.tenant.is_active = False

@@ -146,11 +146,11 @@ export default function SendPage() {
             onChange={(e) => setForm({ ...form, destination: e.target.value })} required />
           {dual && (
             <p className="rounded-md bg-warning/10 px-3 py-2 text-sm text-warning sm:col-span-2">
-              عملتان مختلفتان — سيُدخل مكتبك الكبير سعر الصرف قبل القبول.
+              {`عملتان مختلفتان — سيُدخل مكتب ${getSession()?.user.tenant_name ?? ""} سعر الصرف قبل القبول.`}
             </p>
           )}
           <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted sm:col-span-2">
-            ملاحظة: بعد الإرسال لا يمكنك تعديل الحركة — أي تصحيح يتم عبر مكتبك الكبير.
+            {`ملاحظة: بعد الإرسال لا يمكنك تعديل الحركة — أي تصحيح يتم عبر مكتب ${getSession()?.user.tenant_name ?? ""}.`}
           </p>
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="sm:col-span-2">

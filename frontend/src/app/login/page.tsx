@@ -126,7 +126,7 @@ export default function LoginPage() {
         <ul className="mt-3 flex list-inside list-disc flex-col gap-1.5 text-muted">
           <li>
             <span className="font-medium text-ink">مكتب صغير؟</span> تواصل مع
-            مكتبك الكبير ليعيد تعيينها فوراً.
+            مكتبك ليعيد تعيينها فوراً.
           </li>
           <li>
             <span className="font-medium text-ink">مكتب كبير؟</span> تواصل مع

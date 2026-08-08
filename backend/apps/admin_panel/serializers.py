@@ -37,6 +37,12 @@ class CreateBigOfficeSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True, min_length=8)
     phone = serializers.CharField(max_length=32, allow_blank=True, default="")
+    email = serializers.EmailField(allow_blank=True, default="")
+
+    def validate_email(self, value):
+        if value and User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("البريد الإلكتروني مستخدم مسبقاً.")
+        return value
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():

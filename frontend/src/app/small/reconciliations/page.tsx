@@ -262,8 +262,7 @@ export default function SmallReconciliationsPage() {
               </div>
             ) : (
               <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
-                هذه معاينة فقط — تثبيت المطابقة وإرسالها معطّل من مكتبك.
-                عند الحاجة لمطابقة رسمية اطلبها من مكتبك، أو يفعّل لك الصلاحية من إعداداته.
+                {`هذه معاينة فقط — تثبيت المطابقة وإرسالها معطّل من مكتب ${getSession()?.user.tenant_name ?? ""}. عند الحاجة لمطابقة رسمية اطلبها منه، أو يفعّل لك الصلاحية من إعداداته.`}
               </p>
             )}
           </div>

@@ -21,7 +21,7 @@ interface Office {
 export default function OfficesPage() {
   const [offices, setOffices] = useState<Office[] | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", username: "", password: "", phone: "" });
+  const [form, setForm] = useState({ name: "", username: "", password: "", phone: "", email: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -37,7 +37,7 @@ export default function OfficesPage() {
     try {
       await authedApi("/api/admin/offices/", { method: "POST", body: form });
       setCreateOpen(false);
-      setForm({ name: "", username: "", password: "", phone: "" });
+      setForm({ name: "", username: "", password: "", phone: "", email: "" });
       load();
     } catch {
       setError("تعذر الإنشاء — تأكد من البيانات (اسم مستخدم غير مكرر، كلمة مرور 8+).");
@@ -142,6 +142,14 @@ export default function OfficesPage() {
             label="رقم هاتف واتساب"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
+          <Input
+            label="البريد الإلكتروني"
+            type="email"
+            dir="ltr"
+            hint="سيُعتمد عليه لاستعادة كلمة المرور"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex justify-end gap-3">

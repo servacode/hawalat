@@ -29,6 +29,7 @@ class MemberSerializer(serializers.ModelSerializer):
             "username",
             "office_code",
             "phone",
+            "email",
             "whatsapp_group_name",
             "whatsapp_group_link",
             "whatsapp_chat_id",
@@ -43,6 +44,7 @@ class CreateMemberSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True, min_length=8)
     phone = serializers.CharField(max_length=32, allow_blank=True, default="")
+    email = serializers.EmailField(allow_blank=True, default="")
     whatsapp_group_name = serializers.CharField(max_length=150, allow_blank=True, default="")
     whatsapp_group_link = serializers.URLField(allow_blank=True, default="")
     whatsapp_chat_id = serializers.CharField(max_length=100, allow_blank=True, default="")

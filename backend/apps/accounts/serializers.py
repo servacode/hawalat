@@ -57,6 +57,7 @@ class MeSerializer(serializers.ModelSerializer):
             "role",
             "office_code",
             "phone",
+            "email",
             "whatsapp_group_name",
             "whatsapp_group_link",
             "tenant_code",
@@ -89,6 +90,8 @@ class RegisterSerializer(serializers.Serializer):
     office_name = serializers.CharField(max_length=150)
     username = serializers.CharField(max_length=150)
     phone = serializers.CharField(max_length=32)
+    # سنعتمد على البريد لاستعادة كلمات المرور — إلزامي في التسجيل (ملاحظة 13)
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
     accept_terms = serializers.BooleanField()
@@ -102,4 +105,6 @@ class RegisterSerializer(serializers.Serializer):
             )
         if User.objects.filter(username=attrs["username"]).exists():
             raise serializers.ValidationError({"username": "اسم المستخدم مستخدم مسبقاً."})
+        if User.objects.filter(email__iexact=attrs["email"]).exists():
+            raise serializers.ValidationError({"email": "البريد الإلكتروني مستخدم مسبقاً."})
         return attrs

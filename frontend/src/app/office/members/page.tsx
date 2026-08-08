@@ -21,7 +21,7 @@ interface CurrencyRow { code: string; name: string }
 interface Recon { user: string; office_code: string; last_at: string | null; rows: ReconciliationRow[] }
 
 const emptyCreate = {
-  name: "", username: "", password: "", phone: "",
+  name: "", username: "", password: "", phone: "", email: "",
   whatsapp_group_name: "", whatsapp_group_link: "", whatsapp_chat_id: "",
 };
 
@@ -187,6 +187,10 @@ export default function MembersPage() {
             onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} required />
           <Input label="رقم هاتف واتساب" value={createForm.phone}
             onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
+          <Input label="البريد الإلكتروني" type="email" dir="ltr"
+            hint="سيُعتمد عليه لاستعادة كلمة المرور"
+            value={createForm.email}
+            onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
           <Input label="اسم مجموعة الواتساب" value={createForm.whatsapp_group_name}
             onChange={(e) => setCreateForm({ ...createForm, whatsapp_group_name: e.target.value })} />
           <Input label="رابط مجموعة الواتساب" dir="ltr" placeholder="https://chat.whatsapp.com/…"
