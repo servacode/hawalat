@@ -58,7 +58,6 @@ export default function MemberProfilePage() {
   const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
   // المطابقة (معاينة حيّة = الأرصدة الحالية)
   const [recon, setRecon] = useState<Recon | null>(null);
-  const [reconBusy, setReconBusy] = useState(false);
   const [reconSent, setReconSent] = useState(false);
   const [reconError, setReconError] = useState<string | null>(null);
   const [sendBusy, setSendBusy] = useState(false);
@@ -104,46 +103,49 @@ export default function MemberProfilePage() {
       .catch(() => setStLines([]));
   }, [memberId, stCurrency]);
 
-  async function commitRecon() {
-    setReconBusy(true);
-    try {
-      const data = await authedApi<Recon>(`/api/office/members/${memberId}/reconciliation/`, { method: "POST" });
-      setRecon(data);
-      authedApi<HistoryRec[]>(`/api/office/members/${memberId}/reconciliations/`).then(setHistory).catch(() => {});
-    } finally {
-      setReconBusy(false);
-    }
-  }
-
   async function sendRecon() {
     if (!recon || !member || sendBusy) return;
-    const text = buildReconciliationMessage(recon.rows);
     setReconError(null);
     setSendBusy(true);
     try {
-      // الرقم مربوط (ملاحظة 44)؟ تُرسل مباشرة من رقم المكتب بلا أي رابط
-      const r = await authedApi<{ status: string; error: string }>(
-        "/api/whatsapp/send/",
-        { method: "POST", body: { text, member_id: member.id } },
-      );
-      if (r.status === "sent") {
-        setReconSent(true);
-        setTimeout(() => setReconSent(false), 4000);
-      } else {
-        // لم تُسلَّم فوراً — أظهر السبب الحقيقي بدل الصمت (ملاحظة 47)
-        setReconError(r.error || "لم تُرسل بعد — سيُعاد المحاولة تلقائياً.");
+      // كل إرسال مطابقة = نقطة إغلاق مرجعية تلقائياً (ملاحظة 50) — تثبيت ثم إرسال
+      let committed: Recon;
+      try {
+        committed = await authedApi<Recon>(
+          `/api/office/members/${memberId}/reconciliation/`,
+          { method: "POST" },
+        );
+        setRecon(committed);
+        authedApi<HistoryRec[]>(`/api/office/members/${memberId}/reconciliations/`).then(setHistory).catch(() => {});
+      } catch {
+        setReconError("تعذر تثبيت المطابقة — حاول مجدداً.");
+        return;
       }
-      return;
-    } catch {
-      // الوضع يدوي أو فشل → الرابط، مع إرشاد واضح مهما كانت النتيجة (ملاحظة 48)
-      const how = await sendToWhatsApp(text, member.whatsapp_group_link || null);
-      setReconError(
-        how === "blocked"
-          ? "المتصفح منع فتح النافذة — النص منسوخ: افتح مجموعة الواتساب والصقه (Ctrl+V)."
-          : how === "copied"
-            ? "الوضع اليدوي: نُسخ النص وفُتحت المجموعة — الصقه (Ctrl+V) وأرسله."
-            : "الوضع اليدوي: فُتحت نافذة مشاركة واتساب بالنص الجاهز.",
-      );
+      const text = buildReconciliationMessage(committed.rows);
+      try {
+        // الرقم مربوط (ملاحظة 44)؟ تُرسل مباشرة من رقم المكتب بلا أي رابط
+        const r = await authedApi<{ status: string; error: string }>(
+          "/api/whatsapp/send/",
+          { method: "POST", body: { text, member_id: member.id } },
+        );
+        if (r.status === "sent") {
+          setReconSent(true);
+          setTimeout(() => setReconSent(false), 4000);
+        } else {
+          // لم تُسلَّم فوراً — أظهر السبب الحقيقي بدل الصمت (ملاحظة 47)
+          setReconError(r.error || "ثُبّتت — والرسالة لم تُرسل بعد، سيُعاد تلقائياً.");
+        }
+      } catch {
+        // الوضع يدوي أو فشل → الرابط، مع إرشاد واضح مهما كانت النتيجة (ملاحظة 48)
+        const how = await sendToWhatsApp(text, member.whatsapp_group_link || null);
+        setReconError(
+          how === "blocked"
+            ? "ثُبّتت ✓ — لكن المتصفح منع النافذة: النص منسوخ، افتح المجموعة والصقه (Ctrl+V)."
+            : how === "copied"
+              ? "ثُبّتت ✓ — نُسخ النص وفُتحت المجموعة: الصقه (Ctrl+V) وأرسله."
+              : "ثُبّتت ✓ — فُتحت نافذة مشاركة واتساب بالنص الجاهز.",
+        );
+      }
     } finally {
       setSendBusy(false);
     }
@@ -243,10 +245,14 @@ export default function MemberProfilePage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="accent" disabled={sendBusy} onClick={sendRecon}>
+            <MessageCircle className="size-4" />
+            {sendBusy ? "جارٍ الإرسال…" : "إرسال مطابقة"}
+          </Button>
           <Button variant="ghost" onClick={openEdit}><Pencil className="size-4" />تعديل البيانات</Button>
           <Button variant="ghost" onClick={() => setLimitOpen(true)}><Gauge className="size-4" />الحدود</Button>
           <Button variant="ghost" onClick={() => setResetOpen(true)}><KeyRound className="size-4" />كلمة المرور</Button>
-          <Button variant="accent" onClick={toggleSuspend}
+          <Button variant="ghost" onClick={toggleSuspend}
             title="الموقوف مؤقتاً يدخل حسابه لكن لا يرسل أي حركة">
             {member.is_suspended ? <><CirclePlay className="size-4" />تشغيل</> : <><CirclePause className="size-4" />إيقاف مؤقت</>}
           </Button>
@@ -255,6 +261,10 @@ export default function MemberProfilePage() {
           </Button>
         </div>
       </div>
+
+      {/* نتيجة إرسال المطابقة — تحت الأزرار مباشرة */}
+      {reconSent && <p className="text-sm text-success">أُرسلت عبر الواتساب ✓</p>}
+      {reconError && <p className="text-sm text-danger">{reconError}</p>}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* بيانات المكتب */}
@@ -315,17 +325,10 @@ export default function MemberProfilePage() {
                     </TBody>
                   </Table>
                 )}
-                {reconError && <p className="text-sm text-danger">{reconError}</p>}
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                  {reconSent && <p className="text-sm text-success">أُرسلت عبر الواتساب ✓</p>}
-                  <Button variant="accent" disabled={sendBusy} onClick={sendRecon}>
-                    <MessageCircle className="size-4" />
-                    {sendBusy ? "جارٍ الإرسال…" : "إرسال مطابقة"}
-                  </Button>
-                  <Button disabled={reconBusy} onClick={commitRecon}>
-                    {reconBusy ? "جارٍ…" : <><Flag className="size-4" />تثبيت كنقطة إغلاق</>}
-                  </Button>
-                </div>
+                <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
+                  <Flag className="mb-0.5 inline size-4" /> كل «إرسال مطابقة» يثبّت هذه الأرصدة
+                  نقطةَ إغلاق مرجعية تلقائياً ويرسلها للمكتب — وتجدها في السجل أدناه.
+                </p>
               </>
             )}
           </CardBody>
@@ -379,7 +382,7 @@ export default function MemberProfilePage() {
           {!history ? (
             <Skeleton className="h-24" />
           ) : history.length === 0 ? (
-            <p className="text-sm text-muted">لا مطابقات مثبّتة بعد — «تثبيت كنقطة إغلاق» أعلاه ينشئ أول سجل.</p>
+            <p className="text-sm text-muted">لا مطابقات مثبّتة بعد — «إرسال مطابقة» أعلاه ينشئ أول سجل.</p>
           ) : (
             <Table>
               <THead>
