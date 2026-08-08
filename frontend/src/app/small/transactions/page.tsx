@@ -101,9 +101,12 @@ export default function MyTransactionsPage() {
                   <p><span className="text-muted">الوجهة:</span> {t.destination}</p>
                   <p><span className="text-muted">الأجور:</span> {t.fee_charged ? formatMoney(t.fee_charged) : "—"}</p>
                 </div>
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <span className="tnum text-muted">{formatDateTime(t.created_at)}</span>
-                  {t.payment_status === "paid" && <Badge status="paid" />}
+                  <span className="flex gap-1.5">
+                    {t.payment_status === "paid" && <Badge status="paid" />}
+                    {t.delivery_status === "delivered" && <Badge status="delivered" />}
+                  </span>
                 </div>
               </CardBody>
             </Card>
@@ -114,7 +117,7 @@ export default function MyTransactionsPage() {
           <THead>
             <TR>
               <TH>المرجع</TH><TH>التاريخ</TH><TH>المرسِل</TH><TH>المستفيد</TH>
-              <TH>المبلغ</TH><TH>الأجور</TH><TH>الوجهة</TH><TH>القبول</TH><TH>الدفع</TH>
+              <TH>المبلغ</TH><TH>الأجور</TH><TH>الوجهة</TH><TH>القبول</TH><TH>الدفع</TH><TH>التسليم</TH>
             </TR>
           </THead>
           <TBody>
@@ -129,6 +132,7 @@ export default function MyTransactionsPage() {
                 <TD>{t.destination}</TD>
                 <TD><Badge status={approvalBadge[t.approval_status]} /></TD>
                 <TD>{t.payment_status === "paid" ? <Badge status="paid" /> : <span className="text-muted">—</span>}</TD>
+                <TD>{t.delivery_status === "delivered" ? <Badge status="delivered" /> : <span className="text-muted">—</span>}</TD>
               </TR>
             ))}
           </TBody>
