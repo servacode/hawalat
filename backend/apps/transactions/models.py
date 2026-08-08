@@ -38,7 +38,7 @@ class Transaction(TenantScopedModel):
         related_name="transactions",
     )
 
-    sender = models.CharField("اسم المرسِل", max_length=150)
+    sender = models.CharField("اسم المرسِل", max_length=150, blank=True, default="")
     beneficiary = models.CharField("اسم المستفيد", max_length=150)
     destination = models.CharField("الوجهة", max_length=150)  # نص حر (الجزء 17)
 

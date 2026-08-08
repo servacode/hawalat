@@ -121,7 +121,8 @@ class MyTransactionsViewSet(viewsets.ViewSet):
         # وضع البوت (الجزء 17 §6): إرسال تلقائي فوري لمجموعة المكتب إن كان مفعّلاً
         wa_text = (
             f"🧾 حركة جديدة — {txn.reference_code}\n"
-            f"المرسِل: {txn.sender}\nالمستفيد: {txn.beneficiary}\n"
+            + (f"المرسِل: {txn.sender}\n" if txn.sender else "")
+            + f"المستفيد: {txn.beneficiary}\n"
             f"المبلغ: {txn.amount} {txn.currency_received}\nالوجهة: {txn.destination}"
         )
         wa_msg = queue_message(to_user=request.user, text=wa_text)

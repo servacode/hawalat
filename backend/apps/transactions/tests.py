@@ -70,6 +70,25 @@ class BaseTxnTestCase(APITestCase):
 
 
 class CreateFlowTests(BaseTxnTestCase):
+    def test_sender_is_optional_but_rest_required(self):
+        """اسم المرسِل اختياري — وبقية الحقول إجبارية."""
+        self.auth("aleppo")
+        payload = {
+            "beneficiary": "مروان حدّاد",
+            "amount": "500",
+            "currency_received": "USD",
+            "currency_delivered": "USD",
+            "destination": "دمشق",
+        }
+        res = self.client.post("/api/my/transactions/", payload, format="json")
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data["sender"], "")
+
+        for missing in ("beneficiary", "amount", "currency_received", "destination"):
+            bad = {k: v for k, v in payload.items() if k != missing}
+            res = self.client.post("/api/my/transactions/", bad, format="json")
+            self.assertEqual(res.status_code, 400, f"الحقل {missing} يجب أن يكون إجبارياً")
+
     def test_small_creates_pending_with_reference(self):
         self.auth("aleppo")
         res = self.send_txn()

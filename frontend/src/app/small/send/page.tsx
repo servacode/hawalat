@@ -47,6 +47,13 @@ export default function SendPage() {
   const dual = form.currency_received && form.currency_delivered &&
     form.currency_received !== form.currency_delivered;
 
+  // اسم المرسِل اختياري — الباقي إجباري، والزر لا يتفعّل قبل اكتمالها
+  const complete =
+    form.beneficiary.trim() !== "" &&
+    Number(form.amount) > 0 &&
+    form.currency_received !== "" &&
+    form.destination.trim() !== "";
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -123,8 +130,8 @@ export default function SendPage() {
       <CardHeader><CardTitle>إرسال حركة</CardTitle></CardHeader>
       <CardBody>
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-          <Input label="اسم المرسِل" value={form.sender}
-            onChange={(e) => setForm({ ...form, sender: e.target.value })} required />
+          <Input label="اسم المرسِل (اختياري)" value={form.sender}
+            onChange={(e) => setForm({ ...form, sender: e.target.value })} />
           <Input label="اسم المستفيد" value={form.beneficiary}
             onChange={(e) => setForm({ ...form, beneficiary: e.target.value })} required />
           <Input label="المبلغ" type="number" step="0.01" min={0} className="tnum" value={form.amount}
@@ -144,7 +151,7 @@ export default function SendPage() {
           )}
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="sm:col-span-2">
-            <Button type="submit" size="lg" disabled={busy} className="w-full">
+            <Button type="submit" size="lg" disabled={busy || !complete} className="w-full">
               {busy ? "جارٍ الإرسال…" : <><Send className="size-4" />إرسال الحركة</>}
             </Button>
           </div>

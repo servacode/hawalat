@@ -44,7 +44,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class CreateTransactionSerializer(serializers.Serializer):
-    sender = serializers.CharField(max_length=150)
+    sender = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
     beneficiary = serializers.CharField(max_length=150)
     amount = serializers.DecimalField(max_digits=18, decimal_places=4, min_value=0)
     currency_received = serializers.CharField(max_length=8)

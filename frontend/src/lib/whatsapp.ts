@@ -18,7 +18,7 @@ export interface TxnMessage {
 export function buildTransactionMessage(t: TxnMessage): string {
   const lines = [
     `🧾 حركة جديدة — ${t.reference_code}`,
-    `المرسِل: ${t.sender}`,
+    ...(t.sender ? [`المرسِل: ${t.sender}`] : []),
     `المستفيد: ${t.beneficiary}`,
     `المبلغ: ${t.amount} ${t.currency_received}`,
   ];
