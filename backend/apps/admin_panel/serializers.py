@@ -90,7 +90,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 class PlatformSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlatformSettings
-        fields = ["free_mode", "self_registration_enabled", "logo"]
+        fields = ["free_mode", "self_registration_enabled", "logo", "waha_url", "waha_key"]
+        extra_kwargs = {
+            "waha_url": {"required": False, "allow_blank": True},
+            "waha_key": {"required": False, "allow_blank": True, "write_only": True},
+        }
 
     def validate_logo(self, value):
         value = value or ""

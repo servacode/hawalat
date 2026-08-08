@@ -1,10 +1,10 @@
 "use client";
 
-/** إعدادات المنصة: الوضع المجاني/المدفوع + التسجيل الذاتي + لوغو المنصة. */
+/** إعدادات المنصة: الوضع المجاني/المدفوع + التسجيل الذاتي + لوغو المنصة + خادم الواتساب. */
 
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, MessageCircle, Save, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button, Card, CardBody, CardHeader, CardTitle, Skeleton } from "@/components/ui";
+import { Button, Card, CardBody, CardHeader, CardTitle, Input, PasswordInput, Skeleton } from "@/components/ui";
 import { PlatformLogo, invalidatePlatformLogo } from "@/components/layout/PlatformLogo";
 import { authedApi } from "@/lib/authedApi";
 
@@ -33,6 +33,7 @@ interface Settings {
   free_mode: boolean;
   self_registration_enabled: boolean;
   logo: string;
+  waha_url: string;
 }
 
 function Toggle({
@@ -67,6 +68,8 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
+  const [wahaUrl, setWahaUrl] = useState("");
+  const [wahaKey, setWahaKey] = useState("");
 
   async function saveLogo(logo: string) {
     setLogoBusy(true);
@@ -90,7 +93,10 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    authedApi<Settings>("/api/admin/settings/").then(setSettings).catch(() => {});
+    authedApi<Settings>("/api/admin/settings/").then((d) => {
+      setSettings(d);
+      setWahaUrl(d.waha_url || "");
+    }).catch(() => {});
   }, []);
 
   async function update(patch: Partial<Settings>) {
@@ -154,6 +160,33 @@ export default function SettingsPage() {
           <p className="w-full text-sm text-muted">
             يظهر في الشعار الجانبي وشاشة الدخول لكل المكاتب — يُصغَّر تلقائياً مع حفظ الشفافية.
           </p>
+        </CardBody>
+      </Card>
+
+      {/* خادم الواتساب (ملاحظة 44): WAHA واحد للمنصة — وكل مكتب كبير يربط رقمه بمسح QR */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="size-5 text-brand" /> خادم الواتساب (WAHA)
+          </CardTitle>
+        </CardHeader>
+        <CardBody className="flex flex-col gap-4">
+          <p className="text-sm text-muted">
+            يُضبط مرة واحدة عند النشر — وبعدها كل مكتب كبير يربط رقمه بنفسه بمسح QR
+            من إعداداته، فتُرسل المطابقات والحركات مباشرة من رقمه.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="عنوان الخادم" dir="ltr" placeholder="https://waha.example.com"
+              value={wahaUrl} onChange={(e) => setWahaUrl(e.target.value)} />
+            <PasswordInput label="مفتاح الخادم (API Key)" dir="ltr"
+              value={wahaKey} onChange={(e) => setWahaKey(e.target.value)}
+              placeholder="يبقى المحفوظ إن تُرك فارغاً" />
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => update({ waha_url: wahaUrl, ...(wahaKey ? { waha_key: wahaKey } : {}) } as Partial<Settings>)}>
+              <Save className="size-4" /> حفظ
+            </Button>
+          </div>
         </CardBody>
       </Card>
 

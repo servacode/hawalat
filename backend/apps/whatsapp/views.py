@@ -1,26 +1,103 @@
-"""حوالات — نقاط الواتساب: الإعدادات (كبير) + الحالة والإرسال (الدوران)."""
+"""حوالات — نقاط الواتساب: ربط الرقم (كبير) + الحالة والإرسال (الدوران)."""
 
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.core.models import AuditLog
+from apps.core.models import AuditLog, PlatformSettings
 from apps.core.permissions import IsBigOffice
 
+from . import waha
 from .models import WhatsAppMessage
 from .services import bot_status, get_settings, queue_message
 
 
-class SettingsSerializer(serializers.Serializer):
-    bot_enabled = serializers.BooleanField(required=False)
-    gateway_url = serializers.URLField(required=False, allow_blank=True)
-    gateway_token = serializers.CharField(required=False, allow_blank=True)
+class WhatsAppLinkView(APIView):
+    """
+    ربط رقم المكتب الكبير (ملاحظة 44):
+    GET حالة الربط (+QR إن كان بانتظار المسح) · POST بدء الربط · DELETE فكّه.
+    """
+
+    permission_classes = [IsAuthenticated, IsBigOffice]
+
+    def _state(self, request):
+        s = get_settings(request.user.tenant)
+        if not PlatformSettings.load().waha_url:
+            return {
+                "configured": False,
+                "status": "NOT_CONFIGURED",
+                "number": "",
+                "qr": None,
+            }
+        try:
+            data = waha.session_status(request.user.tenant)
+        except waha.WahaError as exc:
+            return {
+                "configured": True,
+                "status": "OFFLINE",
+                "number": s.linked_number,
+                "qr": None,
+                "detail": str(exc),
+            }
+        st = data.get("status", "NOT_STARTED")
+        qr = None
+        if st == "WORKING":
+            me = data.get("me") or {}
+            number = str(me.get("id") or "").split("@")[0]
+            if number and s.linked_number != number:
+                s.linked_number = number
+                s.save(update_fields=["linked_number"])
+        elif st == "SCAN_QR_CODE":
+            try:
+                qr = waha.qr_image(request.user.tenant)
+            except waha.WahaError:
+                qr = None
+        return {
+            "configured": True,
+            "status": st,
+            "number": s.linked_number if st == "WORKING" else "",
+            "qr": qr,
+        }
+
+    def get(self, request):
+        return Response(self._state(request))
+
+    def post(self, request):
+        try:
+            waha.start_session(request.user.tenant)
+        except waha.WahaError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        AuditLog.objects.create(
+            tenant=request.user.tenant,
+            actor=request.user,
+            action="whatsapp_link_start",
+            entity="whatsapp_settings",
+            entity_id=str(request.user.tenant.pk),
+        )
+        return Response(self._state(request))
+
+    def delete(self, request):
+        s = get_settings(request.user.tenant)
+        try:
+            waha.logout(request.user.tenant)
+        except waha.WahaError:
+            pass  # فك الربط محلياً حتى لو الخادم غير متاح
+        s.linked_number = ""
+        s.save(update_fields=["linked_number"])
+        AuditLog.objects.create(
+            tenant=request.user.tenant,
+            actor=request.user,
+            action="whatsapp_unlink",
+            entity="whatsapp_settings",
+            entity_id=str(s.pk),
+        )
+        return Response({"detail": "فُكّ الربط."})
 
 
 class WhatsAppSettingsView(APIView):
-    """إعدادات البوت — المكتب الكبير حصراً (هو من يتحكم بكل شيء)."""
+    """ملخّص حالة الواتساب لشاشة الإعدادات — المكتب الكبير حصراً."""
 
     permission_classes = [IsAuthenticated, IsBigOffice]
 
@@ -28,33 +105,8 @@ class WhatsAppSettingsView(APIView):
         s = get_settings(request.user.tenant)
         return Response(
             {
-                "bot_enabled": s.bot_enabled,
-                "gateway_url": s.gateway_url,
-                "has_token": bool(s.gateway_token),
-                "is_ready": s.is_ready,
-            }
-        )
-
-    def patch(self, request):
-        serializer = SettingsSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        s = get_settings(request.user.tenant)
-        for field, value in serializer.validated_data.items():
-            setattr(s, field, value)
-        s.save()
-        AuditLog.objects.create(
-            tenant=request.user.tenant,
-            actor=request.user,
-            action="update_whatsapp_settings",
-            entity="whatsapp_settings",
-            entity_id=str(s.pk),
-            data={"bot_enabled": s.bot_enabled},
-        )
-        return Response(
-            {
-                "bot_enabled": s.bot_enabled,
-                "gateway_url": s.gateway_url,
-                "has_token": bool(s.gateway_token),
+                "waha_configured": bool(PlatformSettings.load().waha_url),
+                "linked_number": s.linked_number,
                 "is_ready": s.is_ready,
             }
         )
@@ -100,7 +152,7 @@ class SendView(APIView):
         msg = queue_message(to_user=target, text=text)
         if msg is None:
             return Response(
-                {"detail": "وضع البوت غير مفعّل/غير مضبوط — استخدم الرابط اليدوي."},
+                {"detail": "رقم الواتساب غير مربوط أو لا وجهة للعضو — استخدم الرابط اليدوي."},
                 status=status.HTTP_409_CONFLICT,
             )
         msg.refresh_from_db()

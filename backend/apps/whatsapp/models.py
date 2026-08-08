@@ -19,6 +19,8 @@ class WhatsAppSettings(TenantScopedModel):
     bot_enabled = models.BooleanField("البوت مفعّل", default=False)
     gateway_url = models.URLField("عنوان البوابة", blank=True)
     gateway_token = models.CharField("رمز البوابة", max_length=255, blank=True)
+    # ملاحظة 44: رقم واتساب المكتب الكبير المربوط عبر جلسة WAHA (QR)
+    linked_number = models.CharField("الرقم المربوط", max_length=32, blank=True, default="")
 
     class Meta:
         verbose_name = "إعدادات واتساب"
@@ -32,7 +34,10 @@ class WhatsAppSettings(TenantScopedModel):
 
     @property
     def is_ready(self) -> bool:
-        return self.bot_enabled and bool(self.gateway_url)
+        # جاهز = خادم المنصة مضبوط + رقم المكتب مربوط بجلسة (ملاحظة 44)
+        from apps.core.models import PlatformSettings
+
+        return bool(PlatformSettings.load().waha_url and self.linked_number)
 
 
 class WhatsAppMessage(TenantScopedModel):

@@ -1,22 +1,23 @@
 "use client";
 
 /**
- * إعدادات المكتب الكبير — قسم الواتساب (الجزء 17 §6):
- * مفتاح البوت: مفعّل → إرسال تلقائي عبر البوابة؛ مطفأ → الرابط اليدوي.
- * + سجل رسائل البوت (تشخيص).
+ * إعدادات المكتب الكبير — ربط رقم الواتساب (ملاحظة 44):
+ * امسح QR مرة واحدة من هاتفك، وبعدها المطابقات والحركات تُرسل
+ * مباشرة من رقمك بلا فتح أي رابط. + سجل الرسائل المُرسلة.
  */
 
-import { Lightbulb, Save } from "lucide-react";
+import { Link2, MessageCircle, QrCode, RefreshCw, Unlink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Input, PasswordInput, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
 import { formatDateTime } from "@/lib/format";
 
-interface WaSettings {
-  bot_enabled: boolean;
-  gateway_url: string;
-  has_token: boolean;
-  is_ready: boolean;
+interface LinkState {
+  configured: boolean;
+  status: string;
+  number: string;
+  qr: string | null;
+  detail?: string;
 }
 interface OutMsg {
   id: number; to: string; chat_id: string; text: string;
@@ -24,85 +25,127 @@ interface OutMsg {
 }
 
 export default function OfficeSettingsPage() {
-  const [wa, setWa] = useState<WaSettings | null>(null);
-  const [gatewayUrl, setGatewayUrl] = useState("");
-  const [token, setToken] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [link, setLink] = useState<LinkState | null>(null);
+  const [busy, setBusy] = useState(false);
   const [outbox, setOutbox] = useState<OutMsg[] | null>(null);
 
   const load = useCallback(() => {
-    authedApi<WaSettings>("/api/office/whatsapp/").then((d) => {
-      setWa(d);
-      setGatewayUrl(d.gateway_url);
-    }).catch(() => {});
+    authedApi<LinkState>("/api/office/whatsapp/link/").then(setLink).catch(() => {});
     authedApi<OutMsg[]>("/api/office/whatsapp/outbox/").then(setOutbox).catch(() => setOutbox([]));
   }, []);
   useEffect(load, [load]);
 
-  async function save(patch: Partial<{ bot_enabled: boolean; gateway_url: string; gateway_token: string }>) {
-    const d = await authedApi<WaSettings>("/api/office/whatsapp/", { method: "PATCH", body: patch });
-    setWa(d);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  // ريثما يُمسح الرمز: تحديث تلقائي كل 4 ثوانٍ (الـQR يتجدد والحالة تتقلب)
+  useEffect(() => {
+    if (!link || !["SCAN_QR_CODE", "STARTING"].includes(link.status)) return;
+    const id = setInterval(() => {
+      authedApi<LinkState>("/api/office/whatsapp/link/").then(setLink).catch(() => {});
+    }, 4000);
+    return () => clearInterval(id);
+  }, [link]);
+
+  async function startLink() {
+    setBusy(true);
+    try {
+      const d = await authedApi<LinkState>("/api/office/whatsapp/link/", { method: "POST" });
+      setLink(d);
+    } catch {
+      load();
+    } finally {
+      setBusy(false);
+    }
   }
 
-  if (!wa) return <Skeleton className="h-64" />;
+  async function unlink() {
+    setBusy(true);
+    try {
+      await authedApi("/api/office/whatsapp/link/", { method: "DELETE" });
+      load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!link) return <Skeleton className="h-64" />;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>واتساب — وضع البوت</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="size-5 text-brand" /> ربط الواتساب
+          </CardTitle>
         </CardHeader>
         <CardBody className="flex flex-col gap-4">
-          <label className="flex cursor-pointer items-start justify-between gap-4">
-            <span>
-              <span className="block font-medium">تفعيل بوت الإرسال التلقائي</span>
-              <span className="block text-sm text-muted">
-                مفعّل: الحركات والمطابقات تُرسل فوراً لمجموعات المكاتب عبر البوابة.
-                مطفأ: الإرسال يدوي عبر رابط المجموعة (الوضع الافتراضي — خصوصية أعلى).
-              </span>
-            </span>
-            <input type="checkbox" checked={wa.bot_enabled}
-              onChange={(e) => save({ bot_enabled: e.target.checked })}
-              className="mt-1 size-5 shrink-0 accent-(--brand-600)" />
-          </label>
+          <p className="text-sm text-muted">
+            اربط رقم واتساب مكتبك بمسح رمز QR مرة واحدة — وبعدها «إرسال مطابقة»
+            والحركات الجديدة تنزل للمكاتب مباشرة من رقمك بلا فتح أي رابط.
+          </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="عنوان بوابة الواتساب" dir="ltr" placeholder="https://gateway.example.com/api/send"
-              value={gatewayUrl} onChange={(e) => setGatewayUrl(e.target.value)}
-              hint="بوابة HTTP متوافقة (مثل WAHA) — POST {chatId, text}" />
-            <PasswordInput label="رمز البوابة (Token)" dir="ltr"
-              placeholder={wa.has_token ? "•••••• (محفوظ)" : ""}
-              value={token} onChange={(e) => setToken(e.target.value)} />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-sm">
-              الجاهزية:{" "}
-              {wa.is_ready ? (
-                <Badge status="accepted">جاهز — الإرسال تلقائي</Badge>
-              ) : (
-                <Badge status="pending">يدوي بالرابط</Badge>
-              )}
+          {!link.configured ? (
+            <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
+              خادم الواتساب لم يُضبط بعد من إدارة المنصة — الإرسال يبقى يدوياً بالرابط
+              حتى يُفعَّل عند النشر.
             </p>
-            <Button onClick={() => save({ gateway_url: gatewayUrl, ...(token ? { gateway_token: token } : {}) })}>
-              <Save className="size-4" /> حفظ الإعدادات
-            </Button>
-          </div>
-          {saved && <p className="text-sm text-success">تم الحفظ ✓</p>}
+          ) : link.status === "WORKING" ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="flex items-center gap-2">
+                <Badge status="accepted">مربوط</Badge>
+                <span dir="ltr" className="tnum font-medium">+{link.number}</span>
+              </p>
+              <Button variant="danger" disabled={busy} onClick={unlink}>
+                <Unlink className="size-4" /> فك الربط
+              </Button>
+            </div>
+          ) : link.status === "SCAN_QR_CODE" ? (
+            <div className="flex flex-col items-center gap-3">
+              {link.qr ? (
+                // eslint-disable-next-line @next/next/no-img-element -- QR لحظي من الخادم
+                <img src={link.qr} alt="رمز QR لربط الواتساب" className="size-56 rounded-xl border border-border bg-white p-2" />
+              ) : (
+                <Skeleton className="size-56" />
+              )}
+              <ol className="list-inside list-decimal text-sm text-muted">
+                <li>افتح واتساب في هاتفك</li>
+                <li>الإعدادات ← الأجهزة المرتبطة ← ربط جهاز</li>
+                <li>امسح الرمز أعلاه — يتجدد تلقائياً</li>
+              </ol>
+            </div>
+          ) : link.status === "STARTING" ? (
+            <p className="flex items-center gap-2 text-sm text-muted">
+              <RefreshCw className="size-4 animate-spin" /> جارٍ تجهيز الجلسة…
+            </p>
+          ) : link.status === "OFFLINE" ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-danger">تعذر الوصول لخادم الواتساب — حاول لاحقاً.</p>
+              <Button variant="ghost" disabled={busy} onClick={load}><RefreshCw className="size-4" /> إعادة المحاولة</Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-sm">
+                <Badge status="pending">غير مربوط</Badge>
+                <span className="text-muted">الإرسال حالياً يدوي بالرابط.</span>
+              </p>
+              <Button disabled={busy} onClick={startLink}>
+                <QrCode className="size-4" /> ربط رقمي الآن
+              </Button>
+            </div>
+          )}
+
           <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
-            <Lightbulb className="mb-0.5 inline size-4" /> لكل مكتب صغير حقل «معرّف مجموعة البوت» في قسم الحسابات — مطلوب للإرسال التلقائي لمجموعته.
+            <Link2 className="mb-0.5 inline size-4" /> وجهة الإرسال لكل مكتب صغير: مجموعته
+            إن كانت مضبوطة، وإلا رقم هاتفه مباشرة.
           </p>
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>سجل رسائل البوت</CardTitle></CardHeader>
+        <CardHeader><CardTitle>سجل الرسائل المُرسلة</CardTitle></CardHeader>
         <CardBody>
           {!outbox ? (
             <Skeleton className="h-32" />
           ) : outbox.length === 0 ? (
-            <EmptyState title="لا رسائل بوت بعد" />
+            <EmptyState title="لا رسائل مُرسلة بعد" />
           ) : (
             <Table>
               <THead>

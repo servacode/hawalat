@@ -59,6 +59,7 @@ export default function MemberProfilePage() {
   // المطابقة (معاينة حيّة = الأرصدة الحالية)
   const [recon, setRecon] = useState<Recon | null>(null);
   const [reconBusy, setReconBusy] = useState(false);
+  const [reconSent, setReconSent] = useState(false);
   // كشف الحساب
   const [stCurrency, setStCurrency] = useState("");
   const [stLines, setStLines] = useState<StatementLine[] | null>(null);
@@ -116,7 +117,10 @@ export default function MemberProfilePage() {
     if (!recon || !member) return;
     const text = buildReconciliationMessage(recon.rows);
     try {
+      // الرقم مربوط (ملاحظة 44)؟ تُرسل مباشرة من رقم المكتب بلا أي رابط
       await authedApi("/api/whatsapp/send/", { method: "POST", body: { text, member_id: member.id } });
+      setReconSent(true);
+      setTimeout(() => setReconSent(false), 2500);
       return;
     } catch {
       /* الوضع يدوي أو فشل → الرابط */
@@ -290,7 +294,8 @@ export default function MemberProfilePage() {
                     </TBody>
                   </Table>
                 )}
-                <div className="flex flex-wrap justify-end gap-3">
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                  {reconSent && <p className="text-sm text-success">أُرسلت عبر الواتساب ✓</p>}
                   <Button variant="accent" onClick={sendRecon}><MessageCircle className="size-4" />إرسال مطابقة</Button>
                   <Button disabled={reconBusy} onClick={commitRecon}>
                     {reconBusy ? "جارٍ…" : <><Flag className="size-4" />تثبيت كنقطة إغلاق</>}

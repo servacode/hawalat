@@ -241,6 +241,10 @@ class PlatformSettings(TimeStampedModel):
     self_registration_enabled = models.BooleanField("التسجيل الذاتي مفعّل", default=False)
     # لوغو المنصة (data URL) يرفعه الأدمن — يظهر في الشعار والدخول (ملاحظة 15)
     logo = models.TextField("لوغو المنصة", blank=True, default="")
+    # خادم واتساب WAHA (ملاحظة 44): يضبطه الأدمن مرة واحدة — وكل مكتب كبير
+    # يربط رقمه بمسح QR فيرسل المطابقات والحركات مباشرة من رقمه
+    waha_url = models.URLField("عنوان خادم الواتساب (WAHA)", blank=True, default="")
+    waha_key = models.CharField("مفتاح خادم الواتساب", max_length=255, blank=True, default="")
 
     class Meta:
         verbose_name = "إعدادات المنصة"
