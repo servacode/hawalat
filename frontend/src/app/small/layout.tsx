@@ -1,11 +1,10 @@
 "use client";
 
-import { History, LayoutDashboard, Megaphone, Scale, Send, Settings, Wallet } from "lucide-react";
+import { History, Megaphone, Scale, Send, Settings, Wallet } from "lucide-react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { Shell, type NavItem } from "@/components/layout/Shell";
 
 const NAV: NavItem[] = [
-  { href: "/small", label: "الرئيسية", icon: LayoutDashboard },
   { href: "/small/send", label: "إرسال حركة", icon: Send },
   { href: "/small/transactions", label: "سجل الحركات", icon: History },
   { href: "/small/boxes", label: "الصناديق", icon: Wallet },

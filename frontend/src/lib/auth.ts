@@ -99,6 +99,7 @@ export function roleHome(role: Role): string {
     case "big_office":
       return "/office";
     case "small_office":
-      return "/small";
+      // رئيسية الصغير أُلغيت (ملاحظة 17) — يدخل مباشرة على إرسال حركة
+      return "/small/send";
   }
 }
