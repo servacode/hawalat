@@ -1,3 +1,5 @@
+import { formatMoney } from "@/lib/format";
+
 /**
  * حوالات — قالب رسالة الواتساب المركزي (الجزء 3-أ)
  * الوضع الافتراضي: رابط (يدوي) — يفتح مجموعة المستخدم أو نافذة مشاركة نصية.
@@ -20,7 +22,7 @@ export function buildTransactionMessage(t: TxnMessage): string {
     `🧾 حركة جديدة — ${t.reference_code}`,
     ...(t.sender ? [`المرسِل: ${t.sender}`] : []),
     `المستفيد: ${t.beneficiary}`,
-    `المبلغ: ${t.amount} ${t.currency_received}`,
+    `المبلغ: ${formatMoney(t.amount)} ${t.currency_received}`,
   ];
   if (t.currency_delivered !== t.currency_received) {
     lines.push(`التسليم بعملة: ${t.currency_delivered}`);
@@ -69,8 +71,11 @@ export function buildReconciliationMessage(
   if (lastAt) lines.push(`منذ آخر مطابقة: ${new Date(lastAt).toLocaleString("en-GB")}`);
   for (const r of rows) {
     const bal = Number(r.balance);
-    const label = bal > 0 ? `عليكم ${r.balance}` : bal < 0 ? `لكم ${Math.abs(bal)}` : "متوازن";
-    lines.push(`— ${r.currency}: سابق ${r.previous} · لكم ${r.credits} · عليكم ${r.debits} ⇐ ${label}`);
+    const label =
+      bal > 0 ? `عليكم ${formatMoney(bal)}` : bal < 0 ? `لكم ${formatMoney(-bal)}` : "متوازن";
+    lines.push(
+      `— ${r.currency}: سابق ${formatMoney(r.previous)} · لكم ${formatMoney(r.credits)} · عليكم ${formatMoney(r.debits)} ⇐ ${label}`,
+    );
   }
   lines.push("(كشف دوري — لا يُصفّر الحسابات)");
   return lines.join("\n");

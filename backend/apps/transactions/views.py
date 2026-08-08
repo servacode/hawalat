@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import User
 from apps.boxes.models import IntermediaryBox
+from apps.core.format import fmt
 from apps.core.models import AuditLog
 from apps.core.permissions import IsBigOffice
 from apps.notifications.models import Notification
@@ -106,9 +107,9 @@ def export_transactions(qs, params, owner_label):
             t.created_at.strftime("%Y-%m-%d %H:%M"),
             t.sender or "—",
             t.beneficiary,
-            t.amount,
+            fmt(t.amount),
             t.currency_received,
-            t.fee_charged if t.fee_charged is not None else "—",
+            fmt(t.fee_charged) if t.fee_charged is not None else "—",
             t.destination,
             APPROVAL_LABELS.get(t.approval_status, t.approval_status),
             "مدفوعة" if t.payment_status == "paid" else "—",
@@ -175,7 +176,7 @@ class MyTransactionsViewSet(viewsets.ViewSet):
                 big,
                 Notification.Type.TXN_NEW,
                 f"حركة جديدة {txn.reference_code}",
-                f"من {request.user.first_name or request.user.username}: {txn.amount} {txn.currency_received} → {txn.destination}",
+                f"من {request.user.first_name or request.user.username}: {fmt(txn.amount)} {txn.currency_received} → {txn.destination}",
                 entity="transaction",
                 entity_id=txn.id,
             )
@@ -186,7 +187,7 @@ class MyTransactionsViewSet(viewsets.ViewSet):
             f"🧾 حركة جديدة — {txn.reference_code}\n"
             + (f"المرسِل: {txn.sender}\n" if txn.sender else "")
             + f"المستفيد: {txn.beneficiary}\n"
-            f"المبلغ: {txn.amount} {txn.currency_received}\nالوجهة: {txn.destination}"
+            f"المبلغ: {fmt(txn.amount)} {txn.currency_received}\nالوجهة: {txn.destination}"
         )
         wa_msg = queue_message(to_user=request.user, text=wa_text)
         data = TransactionSerializer(txn).data
@@ -262,7 +263,7 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
                 txn.created_by,
                 Notification.Type.TXN_ACCEPTED,
                 f"قُبلت حركتك {txn.reference_code}",
-                f"الأجور المستحقة: {txn.fee_charged} {txn.currency_received}",
+                f"الأجور المستحقة: {fmt(txn.fee_charged)} {txn.currency_received}",
                 entity="transaction",
                 entity_id=txn.id,
             )
@@ -374,7 +375,7 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
                 txn.created_by,
                 Notification.Type.TXN_PAID,
                 f"قُبضت حركتك {txn.reference_code} نقداً",
-                f"{txn.amount + txn.fee_charged} {txn.currency_received} — صُفّي حسابها",
+                f"{fmt(txn.amount + txn.fee_charged)} {txn.currency_received} — صُفّي حسابها",
                 entity="transaction",
                 entity_id=txn.id,
             )

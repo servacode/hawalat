@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.core.format import fmt
 from apps.core.models import AuditLog, JournalEntry
 from apps.core.permissions import IsBigOffice, IsSmallOffice
 from apps.notifications.models import Notification
@@ -106,6 +107,125 @@ class IntermediaryBoxViewSet(viewsets.ModelViewSet):
             }
         )
 
+    @action(detail=True, methods=["get"])
+    def movements(self, request, pk=None):
+        """كل حركات الصندوق بعملة محددة مع فلاتر (ملاحظة 16): نوع/مكتب/تاريخ."""
+        from apps.core.models import JournalLine
+
+        from .models import BoxCurrencyAccount, SmallOfficeAccount
+
+        box = self.get_object()
+        currency = request.query_params.get("currency") or ""
+        link = BoxCurrencyAccount.objects.filter(box=box, currency=currency).first()
+        if link is None:
+            return Response({"currency": currency, "balance": "0", "rows": [], "totals": {"in": "0", "out": "0"}})
+
+        lines = (
+            JournalLine.objects.filter(account=link.account)
+            .select_related("entry")
+            .order_by("-created_at")
+        )
+        if d := request.query_params.get("date_from"):
+            lines = lines.filter(created_at__date__gte=d)
+        if d := request.query_params.get("date_to"):
+            lines = lines.filter(created_at__date__lte=d)
+
+        # خريطة حساب المكتب الصغير → اسمه (لعرض صاحب العملية وفلترتها)
+        member_map = {
+            l.account_id: (l.user.first_name or l.user.username, l.user_id)
+            for l in SmallOfficeAccount.objects.select_related("user").all()
+        }
+        if m := request.query_params.get("member"):
+            member_account_ids = [aid for aid, (_, uid) in member_map.items() if str(uid) == m]
+            entry_ids = JournalLine.objects.filter(account_id__in=member_account_ids).values_list(
+                "entry_id", flat=True
+            )
+            lines = lines.filter(entry_id__in=list(entry_ids))
+
+        lines = list(lines[:500])
+        # أسطر القيود المقابلة (لتحديد صاحب العملية)
+        siblings = JournalLine.objects.filter(entry_id__in=[l.entry_id for l in lines]).values(
+            "entry_id", "account_id"
+        )
+        entry_members = {}
+        for sib in siblings:
+            info = member_map.get(sib["account_id"])
+            if info:
+                entry_members[sib["entry_id"]] = info[0]
+
+        def classify(line):
+            memo = line.entry.memo or ""
+            et = line.entry.entry_type
+            if et == JournalEntry.EntryType.TRANSACTION:
+                return "transaction"
+            if et == JournalEntry.EntryType.REVERSAL:
+                return "reversal"
+            if memo.startswith("اعتماد"):
+                return "deposit"
+            if memo.startswith("سحب"):
+                return "withdraw"
+            if memo.startswith("تسوية"):
+                return "adjustment"
+            return "settlement"
+
+        rows = []
+        for line in lines:
+            rows.append(
+                {
+                    "id": line.pk,
+                    "at": line.created_at,
+                    "memo": line.entry.memo,
+                    "kind": classify(line),
+                    "member": entry_members.get(line.entry_id, ""),
+                    "in": str(line.debit),
+                    "out": str(line.credit),
+                }
+            )
+        if k := request.query_params.get("kind"):
+            rows = [r for r in rows if r["kind"] == k]
+
+        total_in = sum(Decimal(r["in"]) for r in rows)
+        total_out = sum(Decimal(r["out"]) for r in rows)
+        return Response(
+            {
+                "currency": currency,
+                "balance": str(link.account.balance),
+                "totals": {"in": str(total_in), "out": str(total_out)},
+                "rows": rows,
+            }
+        )
+
+    @action(detail=True, methods=["post"])
+    def adjust(self, request, pk=None):
+        """تسوية رصيد الصندوق (إضافة/خصم) بسبب واضح إلزامي (ملاحظة 16)."""
+        from .services import adjust_box
+
+        box = self.get_object()
+        try:
+            entry = adjust_box(
+                tenant=request.user.tenant,
+                box=box,
+                currency=request.data.get("currency", ""),
+                amount=Decimal(str(request.data.get("amount", "0"))),
+                direction=request.data.get("direction", ""),
+                reason=request.data.get("reason", ""),
+            )
+        except ValidationError as e:
+            return Response({"detail": e.messages[0]}, status=400)
+        except Exception:
+            return Response({"detail": "بيانات التسوية غير صالحة."}, status=400)
+        audit(
+            request,
+            "adjust_box",
+            "journal_entry",
+            entry.pk,
+            box=box.name,
+            direction=request.data.get("direction"),
+            amount=str(request.data.get("amount")),
+            currency=request.data.get("currency"),
+        )
+        return Response({"entry_id": entry.pk}, status=201)
+
     @action(detail=True, methods=["post"])
     def deposit(self, request, pk=None):
         """اعتماد باسم مكتب صغير (المشهد 5)."""
@@ -152,7 +272,7 @@ class IntermediaryBoxViewSet(viewsets.ModelViewSet):
         notify(
             small_user,
             Notification.Type.SETTLEMENT,
-            f"{label} {data['amount']} {data['currency']} على حسابك",
+            f"{label} {fmt(data['amount'])} {data['currency']} على حسابك",
             f"عبر صندوق {box.name}",
             entity="journal_entry",
             entity_id=entry.pk,
@@ -300,10 +420,10 @@ class ReconciliationPdfView(APIView):
             "rows": [
                 [
                     r.get("currency", ""),
-                    r.get("previous", "—"),
-                    r.get("debits", "—"),
-                    r.get("credits", "—"),
-                    r.get("balance", ""),
+                    fmt(r["previous"]) if "previous" in r else "—",
+                    fmt(r["debits"]) if "debits" in r else "—",
+                    fmt(r["credits"]) if "credits" in r else "—",
+                    fmt(r.get("balance", 0)),
                 ]
                 for r in rec.snapshot
             ],

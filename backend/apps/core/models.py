@@ -94,6 +94,7 @@ class Account(TenantScopedModel):
         SELF = "self", "الحساب الذاتي للمكتب الكبير"
         FEES_PROFIT = "fees_profit", "أرباح الأجور"
         FX_CLEARING = "fx_clearing", "مقاصة صرف العملات"
+        ADJUSTMENT = "adjustment", "تسويات الصناديق"
 
     name = models.CharField("الاسم", max_length=150)
     kind = models.CharField("النوع", max_length=32, choices=Kind.choices)

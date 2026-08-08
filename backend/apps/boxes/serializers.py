@@ -41,4 +41,8 @@ class SettlementSerializer(serializers.Serializer):
     small_user = serializers.IntegerField()
     currency = serializers.CharField(max_length=8)
     amount = serializers.DecimalField(max_digits=18, decimal_places=4)
-    memo = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    # سبب واضح إلزامي: لماذا اعتمدنا/سحبنا (ملاحظة 16)
+    memo = serializers.CharField(
+        max_length=255,
+        error_messages={"required": "سبب العملية إلزامي.", "blank": "سبب العملية إلزامي."},
+    )

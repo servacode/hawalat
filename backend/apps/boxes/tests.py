@@ -17,6 +17,7 @@ from .models import Currency, IntermediaryBox
 from .services import (
     check_credit_limit,
     deposit_to_box,
+    get_box_account,
     get_small_office_account,
     withdraw_from_box,
 )
@@ -182,6 +183,73 @@ class CreditLimitTests(BaseBoxesTestCase):
         self.assertFalse(ok)
 
 
+class BoxDetailsTests(BaseBoxesTestCase):
+    """ملاحظة التجربة 16: سبب إلزامي + تسوية + حركات الصندوق المفلترة."""
+
+    def test_settlement_requires_reason(self):
+        self.auth("damascus")
+        res = self.client.post(
+            f"/api/office/boxes/{self.box.pk}/deposit/",
+            {"small_user": self.small.pk, "currency": "USD", "amount": "100"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+        res = self.client.post(
+            f"/api/office/boxes/{self.box.pk}/withdraw/",
+            {"small_user": self.small.pk, "currency": "USD", "amount": "100", "memo": ""},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+
+    def test_adjust_box_in_and_out(self):
+        self.auth("damascus")
+        res = self.client.post(
+            f"/api/office/boxes/{self.box.pk}/adjust/",
+            {"currency": "USD", "amount": "500", "direction": "in", "reason": "رصيد افتتاحي سابق"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201)
+        # بلا سبب → مرفوضة
+        res = self.client.post(
+            f"/api/office/boxes/{self.box.pk}/adjust/",
+            {"currency": "USD", "amount": "10", "direction": "out", "reason": " "},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+        with tenant_context(self.tenant):
+            self.assertEqual(get_box_account(self.box, "USD").balance, D("500"))
+
+    def test_movements_with_kinds_and_member_filter(self):
+        self.auth("damascus")
+        self.client.post(
+            f"/api/office/boxes/{self.box.pk}/deposit/",
+            {"small_user": self.small.pk, "currency": "USD", "amount": "1000", "memo": "تعزيز"},
+            format="json",
+        )
+        self.client.post(
+            f"/api/office/boxes/{self.box.pk}/adjust/",
+            {"currency": "USD", "amount": "200", "direction": "out", "reason": "فرق جرد"},
+            format="json",
+        )
+        res = self.client.get(f"/api/office/boxes/{self.box.pk}/movements/?currency=USD")
+        self.assertEqual(res.status_code, 200)
+        kinds = {r["kind"] for r in res.data["rows"]}
+        self.assertEqual(kinds, {"deposit", "adjustment"})
+        self.assertEqual(D(res.data["balance"]), D("800"))
+        # فلتر المكتب: التسوية ليست باسم مكتب — يبقى الاعتماد فقط
+        res = self.client.get(
+            f"/api/office/boxes/{self.box.pk}/movements/?currency=USD&member={self.small.pk}"
+        )
+        self.assertEqual(len(res.data["rows"]), 1)
+        self.assertEqual(res.data["rows"][0]["kind"], "deposit")
+        self.assertIn("تعزيز", res.data["rows"][0]["memo"])
+        # فلتر النوع
+        res = self.client.get(
+            f"/api/office/boxes/{self.box.pk}/movements/?currency=USD&kind=adjustment"
+        )
+        self.assertEqual(len(res.data["rows"]), 1)
+
+
 class ApiFlowTests(BaseBoxesTestCase):
     def test_big_office_full_flow_via_api(self):
         self.auth("damascus")
@@ -201,7 +269,7 @@ class ApiFlowTests(BaseBoxesTestCase):
         # اعتماد عبر الـ API
         res = self.client.post(
             f"/api/office/boxes/{box_id}/deposit/",
-            {"small_user": self.small.pk, "currency": "KWD", "amount": "3000"},
+            {"small_user": self.small.pk, "currency": "KWD", "amount": "3000", "memo": "تعزيز رصيد"},
             format="json",
         )
         self.assertEqual(res.status_code, 201)
@@ -270,7 +338,7 @@ class TenantIsolationBoxesTests(BaseBoxesTestCase):
             box.currencies.add(eur)
         res = self.client.post(
             f"/api/office/boxes/{box.pk}/deposit/",
-            {"small_user": self.small.pk, "currency": "EUR", "amount": "100"},
+            {"small_user": self.small.pk, "currency": "EUR", "amount": "100", "memo": "تعزيز رصيد"},
             format="json",
         )
         self.assertEqual(res.status_code, 400)

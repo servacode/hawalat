@@ -99,7 +99,7 @@ class TriggerTests(BaseNotifTestCase):
         self.auth("damascus")
         self.client.post(
             f"/api/office/boxes/{self.box.pk}/deposit/",
-            {"small_user": self.small.pk, "currency": "USD", "amount": "500"},
+            {"small_user": self.small.pk, "currency": "USD", "amount": "500", "memo": "تعزيز رصيد"},
             format="json",
         )
         self.assertTrue(

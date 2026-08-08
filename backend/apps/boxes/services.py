@@ -152,8 +152,9 @@ def deposit_to_box(
     return post_entry(
         tenant=tenant,
         entry_type=JournalEntry.EntryType.SETTLEMENT,
-        memo=memo
-        or f"اعتماد {amount} {currency} باسم {small_user.first_name or small_user.username} في {box.name}",
+        memo=f"اعتماد باسم {small_user.first_name or small_user.username}: {memo}"
+        if memo
+        else f"اعتماد باسم {small_user.first_name or small_user.username}",
         lines=[
             (box_account, amount, Decimal("0")),  # مدين: زاد رصيدنا في الصندوق
             (small_account, Decimal("0"), amount),  # دائن: نقص ما على الصغير
@@ -172,12 +173,45 @@ def withdraw_from_box(
     return post_entry(
         tenant=tenant,
         entry_type=JournalEntry.EntryType.SETTLEMENT,
-        memo=memo
-        or f"سحب {amount} {currency} باسم {small_user.first_name or small_user.username} من {box.name}",
+        memo=f"سحب باسم {small_user.first_name or small_user.username}: {memo}"
+        if memo
+        else f"سحب باسم {small_user.first_name or small_user.username}",
         lines=[
             (small_account, amount, Decimal("0")),  # مدين: زاد ما على الصغير
             (box_account, Decimal("0"), amount),  # دائن: نقص الصندوق
         ],
+    )
+
+
+def adjust_box(*, tenant, box: IntermediaryBox, currency: str, amount: Decimal, direction: str, reason: str):
+    """
+    تسوية صندوق (ملاحظة 16): تصحيح رصيد سابق أو فرق جرد — بسبب واضح إلزامي.
+    direction: "in" يزيد رصيدنا في الصندوق، "out" ينقصه. الطرف المقابل حساب «تسويات الصناديق».
+    """
+    if amount <= 0:
+        raise ValidationError("مبلغ التسوية يجب أن يكون موجباً.")
+    if direction not in ("in", "out"):
+        raise ValidationError("اتجاه التسوية غير صالح.")
+    if not (reason or "").strip():
+        raise ValidationError("سبب التسوية إلزامي.")
+    box_account = get_box_account(box, currency)
+    adj_account, _ = Account.all_objects.get_or_create(
+        tenant=tenant,
+        name="تسويات الصناديق",
+        kind=Account.Kind.ADJUSTMENT,
+        currency=currency,
+    )
+    label = "إضافة" if direction == "in" else "خصم"
+    lines = (
+        [(box_account, amount, Decimal("0")), (adj_account, Decimal("0"), amount)]
+        if direction == "in"
+        else [(adj_account, amount, Decimal("0")), (box_account, Decimal("0"), amount)]
+    )
+    return post_entry(
+        tenant=tenant,
+        entry_type=JournalEntry.EntryType.SETTLEMENT,
+        memo=f"تسوية {label}: {reason.strip()}",
+        lines=lines,
     )
 
 

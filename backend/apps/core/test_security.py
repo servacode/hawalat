@@ -166,7 +166,7 @@ class GlobalLedgerInvariantTests(BaseSecTestCase):
         # اعتماد + حركة مقبولة + قبض + سحب + عكس
         self.client.post(
             f"/api/office/boxes/{self.box.pk}/deposit/",
-            {"small_user": self.small.pk, "currency": "USD", "amount": "2000"},
+            {"small_user": self.small.pk, "currency": "USD", "amount": "2000", "memo": "تعزيز رصيد"},
             format="json",
         )
         self.auth("aleppo")
@@ -191,7 +191,7 @@ class GlobalLedgerInvariantTests(BaseSecTestCase):
         self.client.post(f"/api/office/transactions/{txn['id']}/pay/")
         self.client.post(
             f"/api/office/boxes/{self.box.pk}/withdraw/",
-            {"small_user": self.small.pk, "currency": "USD", "amount": "300"},
+            {"small_user": self.small.pk, "currency": "USD", "amount": "300", "memo": "تعزيز رصيد"},
             format="json",
         )
         self.client.post(f"/api/office/transactions/{txn['id']}/reverse/")
@@ -214,7 +214,7 @@ class AuditCompletenessTests(BaseSecTestCase):
         )
         self.client.post(
             f"/api/office/boxes/{self.box.pk}/deposit/",
-            {"small_user": self.small.pk, "currency": "USD", "amount": "100"},
+            {"small_user": self.small.pk, "currency": "USD", "amount": "100", "memo": "تعزيز رصيد"},
             format="json",
         )
         self.auth("aleppo")
