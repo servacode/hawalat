@@ -56,6 +56,21 @@ services:
       - key: BOOTSTRAP_ADMIN_PASSWORD
         sync: false # ← ستُسأل عنها عند النشر (8+ أحرف غير شائعة)
 
+  # خادم الواتساب WAHA (ملاحظة 44): لربط رقم المكتب فعلياً على الديمو.
+  # محرك NOWEB خفيف (بلا متصفح) يناسب الخطة المجانية — جلسة واحدة (نسخة Core).
+  - type: web
+    name: hawalat-waha-demo
+    runtime: image
+    plan: free
+    region: frankfurt
+    image:
+      url: docker.io/devlikeapro/waha:latest
+    envVars:
+      - key: WHATSAPP_DEFAULT_ENGINE
+        value: NOWEB
+      - key: WHATSAPP_API_KEY
+        sync: false # ← ستُسأل عنه عند النشر — ضع نفسه في: الأدمن ← الإعدادات ← خادم الواتساب
+
   # الواجهة (Next.js standalone)
   - type: web
     name: hawalat-app-demo

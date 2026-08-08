@@ -172,15 +172,18 @@ export default function SettingsPage() {
         </CardHeader>
         <CardBody className="flex flex-col gap-4">
           <p className="text-sm text-muted">
-            يُضبط مرة واحدة عند النشر — وبعدها كل مكتب كبير يربط رقمه بنفسه بمسح QR
-            من إعداداته، فتُرسل المطابقات والحركات مباشرة من رقمه.
+            مجاني بالكامل: خادم WAHA مفتوح المصدر يعمل بطريقة «واتساب ويب» — لا اشتراك
+            ولا API رسمياً مدفوعاً. يُضبط مرة واحدة، وبعدها كل مكتب كبير يربط رقمه بنفسه
+            بمسح QR من إعداداته فتُرسل المطابقات والحركات مباشرة من رقمه. وما دام غير
+            مضبوط تبقى الطريقة اليدوية بالرابط تعمل كالمعتاد (احتياط دائم).
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="عنوان الخادم" dir="ltr" placeholder="https://waha.example.com"
               value={wahaUrl} onChange={(e) => setWahaUrl(e.target.value)} />
-            <PasswordInput label="مفتاح الخادم (API Key)" dir="ltr"
+            <PasswordInput label="كلمة سر الخادم" dir="ltr"
               value={wahaKey} onChange={(e) => setWahaKey(e.target.value)}
-              placeholder="يبقى المحفوظ إن تُرك فارغاً" />
+              placeholder="يبقى المحفوظ إن تُرك فارغاً"
+              hint="كلمة سر تخترعها أنت لحماية خادمك — ليست مفتاحاً مدفوعاً" />
           </div>
           <div className="flex justify-end">
             <Button onClick={() => update({ waha_url: wahaUrl, ...(wahaKey ? { waha_key: wahaKey } : {}) } as Partial<Settings>)}>

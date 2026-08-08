@@ -8,9 +8,8 @@
 
 import { Link2, MessageCircle, QrCode, RefreshCw, Unlink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Skeleton } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
-import { formatDateTime } from "@/lib/format";
 
 interface LinkState {
   configured: boolean;
@@ -19,19 +18,12 @@ interface LinkState {
   qr: string | null;
   detail?: string;
 }
-interface OutMsg {
-  id: number; to: string; chat_id: string; text: string;
-  status: "pending" | "sent" | "failed"; attempts: number; error: string; at: string;
-}
-
 export default function OfficeSettingsPage() {
   const [link, setLink] = useState<LinkState | null>(null);
   const [busy, setBusy] = useState(false);
-  const [outbox, setOutbox] = useState<OutMsg[] | null>(null);
 
   const load = useCallback(() => {
     authedApi<LinkState>("/api/office/whatsapp/link/").then(setLink).catch(() => {});
-    authedApi<OutMsg[]>("/api/office/whatsapp/outbox/").then(setOutbox).catch(() => setOutbox([]));
   }, []);
   useEffect(load, [load]);
 
@@ -139,37 +131,6 @@ export default function OfficeSettingsPage() {
         </CardBody>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>سجل الرسائل المُرسلة</CardTitle></CardHeader>
-        <CardBody>
-          {!outbox ? (
-            <Skeleton className="h-32" />
-          ) : outbox.length === 0 ? (
-            <EmptyState title="لا رسائل مُرسلة بعد" />
-          ) : (
-            <Table>
-              <THead>
-                <TR><TH>إلى</TH><TH>النص</TH><TH>الحالة</TH><TH>محاولات</TH><TH>الوقت</TH></TR>
-              </THead>
-              <TBody>
-                {outbox.map((m) => (
-                  <TR key={m.id}>
-                    <TD>{m.to}</TD>
-                    <TD className="max-w-56 truncate">{m.text}</TD>
-                    <TD>
-                      {m.status === "sent" ? <Badge status="accepted">أُرسلت</Badge>
-                        : m.status === "failed" ? <Badge status="cancelled">فشلت</Badge>
-                        : <Badge status="pending">قيد الإرسال</Badge>}
-                    </TD>
-                    <TD className="tnum">{m.attempts}</TD>
-                    <TD className="tnum text-sm">{formatDateTime(m.at)}</TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          )}
-        </CardBody>
-      </Card>
     </div>
   );
 }
