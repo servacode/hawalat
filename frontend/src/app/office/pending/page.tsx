@@ -6,7 +6,7 @@
  * الأجور المستحقة + سعر الصرف (إن اختلفت العملتان — إلزامي) → قبول/رفض.
  */
 
-import { Building2, CalendarDays, Check, ClipboardCheck, MapPin, UserCheck, UserRound, X } from "lucide-react";
+import { Banknote, Building2, CalendarDays, Check, ClipboardCheck, MapPin, UserCheck, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode } from "@/components/ui";
 import { TxnField } from "@/components/transactions/TxnField";
@@ -103,8 +103,9 @@ export default function PendingPage() {
                   <Badge status="pending" />
                   <span dir="ltr" className="tnum ms-auto text-sm text-muted">{t.reference_code}</span>
                 </div>
-                <p className="tnum text-xl font-bold">{formatMoney(t.amount, t.currency_received)}</p>
                 <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
+                  <TxnField icon={Banknote} label="المبلغ"
+                    value={<span className="tnum text-base font-bold">{formatMoney(t.amount, t.currency_received)}</span>} />
                   <TxnField icon={Building2} label="من مكتب" value={t.created_by_name} />
                   {t.sender && <TxnField icon={UserRound} label="المرسِل" value={t.sender} />}
                   <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />

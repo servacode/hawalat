@@ -75,6 +75,12 @@ class MembersViewSet(viewsets.ViewSet):
     def list(self, request):
         return Response(MemberSerializer(self._qs(request), many=True).data)
 
+    def retrieve(self, request, pk=None):
+        member = self._qs(request).filter(pk=pk).first()
+        if member is None:
+            return Response(status=404)
+        return Response(MemberSerializer(member).data)
+
     def create(self, request):
         ok, reason = can_create_small_office(request.user.tenant)
         if not ok:

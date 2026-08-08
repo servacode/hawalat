@@ -1,24 +1,26 @@
 "use client";
 
 /**
- * قسم الحسابات (الجزء 10): فتح/تعديل/حظر المكاتب الصغيرة + ملف كل عضو
- * (واتساب/هاتف/كود) + حدوده + كشفه + مطابقته (المشهد 4) بإرسال واتساب.
+ * قسم الحسابات: قائمة المكاتب الصغيرة (جدول/كروت) + فتح مكتب جديد.
+ * الضغط على المكتب يفتح ملفه الفردي الكامل (ملاحظة 34) — كل الإجراءات هناك.
  */
 
-import { Ban, Flag, Gauge, KeyRound, LockOpen, MessageCircle, Save, Scale, UserPlus } from "lucide-react";
+import { ChevronLeft, Mail, MessageCircle, Phone, UserPlus, UserRound } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, EmptyState, Input, Modal, PasswordInput, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
+import {
+  Badge, Button, Card, CardBody, EmptyState, Input, Modal, Pagination,
+  PasswordInput, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle,
+  usePagination, useViewMode,
+} from "@/components/ui";
+import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi } from "@/lib/authedApi";
-import { formatDateTime, formatMoney } from "@/lib/format";
-import { buildReconciliationMessage, sendToWhatsApp, type ReconciliationRow } from "@/lib/whatsapp";
 
 interface Member {
   id: number; name: string; username: string; office_code: string;
-  phone: string; whatsapp_group_name: string; whatsapp_group_link: string;
+  phone: string; email: string; whatsapp_group_name: string;
   is_blocked: boolean;
 }
-interface CurrencyRow { code: string; name: string }
-interface Recon { user: string; office_code: string; last_at: string | null; rows: ReconciliationRow[] }
 
 const emptyCreate = {
   name: "", username: "", password: "", phone: "", email: "",
@@ -27,27 +29,14 @@ const emptyCreate = {
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[] | null>(null);
-  const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreate);
   const [error, setError] = useState<string | null>(null);
-  // المطابقة
-  const [reconFor, setReconFor] = useState<Member | null>(null);
-  const [recon, setRecon] = useState<Recon | null>(null);
-  const [reconBusy, setReconBusy] = useState(false);
-  // الحدود
-  const [limitFor, setLimitFor] = useState<Member | null>(null);
-  const [limitForm, setLimitForm] = useState({ currency: "", negative_limit: "" });
-  // استعادة كلمة المرور
-  const [resetFor, setResetFor] = useState<Member | null>(null);
-  const [resetPw, setResetPw] = useState("");
-  const [resetDone, setResetDone] = useState(false);
+  const [view, setView] = useViewMode();
+  const pager = usePagination(members ?? [], 9);
 
   const load = useCallback(() => {
     authedApi<Member[]>("/api/office/members/").then(setMembers).catch(() => {});
-    authedApi<{ results?: CurrencyRow[] } | CurrencyRow[]>("/api/office/currencies/")
-      .then((d) => setCurrencies(Array.isArray(d) ? d : (d.results ?? [])))
-      .catch(() => {});
   }, []);
   useEffect(load, [load]);
 
@@ -65,95 +54,63 @@ export default function MembersPage() {
     }
   }
 
-  async function toggleBlock(m: Member) {
-    await authedApi(`/api/office/members/${m.id}/${m.is_blocked ? "unblock" : "block"}/`, { method: "POST" });
-    load();
-  }
-
-  async function openRecon(m: Member) {
-    setReconFor(m);
-    setRecon(null);
-    const data = await authedApi<Recon>(`/api/office/members/${m.id}/reconciliation/`);
-    setRecon(data);
-  }
-
-  async function commitRecon() {
-    if (!reconFor) return;
-    setReconBusy(true);
-    try {
-      const data = await authedApi<Recon>(`/api/office/members/${reconFor.id}/reconciliation/`, { method: "POST" });
-      setRecon(data);
-    } finally {
-      setReconBusy(false);
-    }
-  }
-
-  async function sendRecon() {
-    if (!recon || !reconFor) return;
-    const text = buildReconciliationMessage(recon.user, recon.office_code, recon.rows, recon.last_at);
-    // بوت أولاً (إن كان مفعّلاً) ثم الرابط اليدوي
-    try {
-      await authedApi("/api/whatsapp/send/", {
-        method: "POST",
-        body: { text, member_id: reconFor.id },
-      });
-      return;
-    } catch {
-      /* الوضع يدوي أو فشل → الرابط */
-    }
-    await sendToWhatsApp(text, reconFor.whatsapp_group_link || null);
-  }
-
-  async function doReset(e: React.FormEvent) {
-    e.preventDefault();
-    if (!resetFor) return;
-    await authedApi("/api/auth/reset-password/", {
-      method: "POST",
-      body: { user_id: resetFor.id, new_password: resetPw },
-    });
-    setResetDone(true);
-    setTimeout(() => {
-      setResetFor(null);
-      setResetPw("");
-      setResetDone(false);
-    }, 1200);
-  }
-
-  async function saveLimit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!limitFor) return;
-    await authedApi("/api/office/credit-limits/", {
-      method: "POST",
-      body: { user: limitFor.id, ...limitForm },
-    }).catch(() => {});
-    setLimitFor(null);
-    setLimitForm({ currency: "", negative_limit: "" });
-  }
-
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-muted">مكاتبك الصغيرة — الفتح ضمن حد الباقة، وكل ملف يجمع كل ما يخص العضو.</p>
-        <Button onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />مكتب صغير جديد</Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-muted">مكاتبك الصغيرة — اضغط على المكتب لفتح ملفه الكامل.</p>
+        <div className="flex items-center gap-2">
+          <ViewToggle mode={view} onChange={setView} />
+          <Button onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />مكتب صغير جديد</Button>
+        </div>
       </div>
 
       {!members ? (
         <Skeleton className="h-64" />
       ) : members.length === 0 ? (
         <EmptyState title="لا مكاتب صغيرة بعد" action={<Button onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />فتح أول مكتب</Button>} />
+      ) : view === "cards" ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {pager.slice.map((m) => (
+            <Card key={m.id}>
+              <CardBody className="flex flex-col gap-2.5 py-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  {m.is_blocked ? <Badge status="cancelled">محظور</Badge> : <Badge status="accepted">نشط</Badge>}
+                  <span dir="ltr" className="tnum ms-auto text-sm text-muted">{m.office_code}</span>
+                </div>
+                <Link href={`/office/members/${m.id}`} className="text-lg font-bold text-brand-700 hover:underline">
+                  {m.name}
+                </Link>
+                <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
+                  <TxnField icon={UserRound} label="المستخدم" value={m.username} />
+                  <TxnField icon={Phone} label="الهاتف" value={m.phone ? <span className="tnum">{m.phone}</span> : "—"} />
+                  <TxnField icon={Mail} label="البريد" value={m.email || "—"} />
+                  <TxnField icon={MessageCircle} label="مجموعة الواتساب" value={m.whatsapp_group_name || "—"} />
+                </div>
+                <Link href={`/office/members/${m.id}`}
+                  className="flex items-center justify-center gap-1 rounded-lg border border-border py-2 text-sm font-medium transition-colors hover:border-brand hover:text-brand-700">
+                  الملف الكامل <ChevronLeft className="size-4" />
+                </Link>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Table>
           <THead>
             <TR>
               <TH>الكود</TH><TH>الاسم</TH><TH>المستخدم</TH><TH>الهاتف</TH>
-              <TH>مجموعة الواتساب</TH><TH>الحالة</TH><TH>إجراءات</TH>
+              <TH>مجموعة الواتساب</TH><TH>الحالة</TH><TH>الملف</TH>
             </TR>
           </THead>
           <TBody>
-            {members.map((m) => (
+            {pager.slice.map((m) => (
               <TR key={m.id}>
                 <TD className="tnum text-sm text-muted">{m.office_code}</TD>
-                <TD className="font-medium">{m.name}</TD>
+                <TD>
+                  <Link href={`/office/members/${m.id}`} className="font-medium text-brand-700 hover:underline">
+                    {m.name}
+                  </Link>
+                </TD>
                 <TD>{m.username}</TD>
                 <TD className="tnum">{m.phone || "—"}</TD>
                 <TD>{m.whatsapp_group_name || "—"}</TD>
@@ -161,20 +118,17 @@ export default function MembersPage() {
                   {m.is_blocked ? <Badge status="cancelled">محظور</Badge> : <Badge status="accepted">نشط</Badge>}
                 </TD>
                 <TD>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Button size="sm" variant="ghost" onClick={() => openRecon(m)}><Scale className="size-4" />مطابقة</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setLimitFor(m)}><Gauge className="size-4" />الحدود</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setResetFor(m)} aria-label="استعادة كلمة المرور"><KeyRound className="size-4" /></Button>
-                    <Button size="sm" variant={m.is_blocked ? "primary" : "danger"} onClick={() => toggleBlock(m)}>
-                      {m.is_blocked ? <><LockOpen className="size-4" />فك الحظر</> : <><Ban className="size-4" />حظر</>}
-                    </Button>
-                  </div>
+                  <Link href={`/office/members/${m.id}`}
+                    className="flex w-fit items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-sm transition-colors hover:border-brand hover:text-brand-700">
+                    الملف الكامل <ChevronLeft className="size-4" />
+                  </Link>
                 </TD>
               </TR>
             ))}
           </TBody>
         </Table>
       )}
+      <Pagination page={pager.page} pages={pager.pages} total={pager.total} onChange={pager.setPage} />
 
       {/* إنشاء عضو */}
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="فتح مكتب صغير جديد">
@@ -203,86 +157,6 @@ export default function MembersPage() {
           <div className="flex justify-end gap-3 sm:col-span-2">
             <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>إلغاء</Button>
             <Button type="submit"><UserPlus className="size-4" />فتح المكتب</Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* المطابقة */}
-      <Modal open={reconFor !== null} onClose={() => setReconFor(null)}
-        title={reconFor ? `مطابقة ${reconFor.name}` : ""}>
-        {!recon ? (
-          <Skeleton className="h-32" />
-        ) : (
-          <div className="flex flex-col gap-4">
-            <p className="text-sm text-muted">
-              {recon.last_at
-                ? `منذ آخر مطابقة: ${formatDateTime(recon.last_at)} — رصيد سابق + حركات الفترة فقط`
-                : "أول مطابقة — تشمل كل الحركات"}
-            </p>
-            {recon.rows.length === 0 ? (
-              <p className="text-muted">لا حسابات/حركات بعد.</p>
-            ) : (
-              <Table>
-                <THead>
-                  <TR><TH>العملة</TH><TH>سابق</TH><TH>عليكم</TH><TH>لكم</TH><TH>الصافي</TH></TR>
-                </THead>
-                <TBody>
-                  {recon.rows.map((r) => {
-                    const bal = Number(r.balance);
-                    return (
-                      <TR key={r.currency}>
-                        <TD className="font-medium">{r.currency}</TD>
-                        <TD className="tnum">{formatMoney(r.previous)}</TD>
-                        <TD className="tnum">{formatMoney(r.debits)}</TD>
-                        <TD className="tnum">{formatMoney(r.credits)}</TD>
-                        <TD className={`tnum font-bold ${bal > 0 ? "text-neg" : bal < 0 ? "text-pos" : ""}`}>
-                          {formatMoney(r.balance)} {bal > 0 ? "(عليه)" : bal < 0 ? "(له)" : ""}
-                        </TD>
-                      </TR>
-                    );
-                  })}
-                </TBody>
-              </Table>
-            )}
-            <div className="flex flex-wrap justify-end gap-3">
-              <Button variant="accent" onClick={sendRecon}><MessageCircle className="size-4" />إرسال مطابقة</Button>
-              <Button disabled={reconBusy} onClick={commitRecon}>
-                {reconBusy ? "جارٍ…" : <><Flag className="size-4" />تثبيت كنقطة إغلاق</>}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* استعادة كلمة المرور (الجزء 10) */}
-      <Modal open={resetFor !== null} onClose={() => setResetFor(null)}
-        title={resetFor ? `استعادة كلمة مرور ${resetFor.name}` : ""}>
-        <form onSubmit={doReset} className="flex flex-col gap-4">
-          <PasswordInput label="كلمة المرور الجديدة" hint="8 أحرف على الأقل"
-            value={resetPw} onChange={(e) => setResetPw(e.target.value)} required minLength={8} />
-          {resetDone && <p className="text-sm text-success">تمت الاستعادة ✓</p>}
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={() => setResetFor(null)}>إلغاء</Button>
-            <Button type="submit"><KeyRound className="size-4" />إعادة التعيين</Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* الحدود */}
-      <Modal open={limitFor !== null} onClose={() => setLimitFor(null)}
-        title={limitFor ? `الحد السالب — ${limitFor.name}` : ""}>
-        <form onSubmit={saveLimit} className="flex flex-col gap-4">
-          <Select label="العملة" placeholder="اختر العملة"
-            options={currencies.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))}
-            value={limitForm.currency}
-            onChange={(e) => setLimitForm({ ...limitForm, currency: e.target.value })} required />
-          <Input label="الحد السالب المسموح" type="number" step="0.01" min={0} className="tnum"
-            hint="مثال: 5000 تعني يُسمح له بالإرسال حتى يبلغ عليه 5000"
-            value={limitForm.negative_limit}
-            onChange={(e) => setLimitForm({ ...limitForm, negative_limit: e.target.value })} required />
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={() => setLimitFor(null)}>إلغاء</Button>
-            <Button type="submit"><Save className="size-4" />حفظ الحد</Button>
           </div>
         </form>
       </Modal>

@@ -167,6 +167,21 @@ class ReconciliationLogicTests(BaseRecTestCase):
 
 
 class MembersTests(BaseRecTestCase):
+    def test_retrieve_member_profile(self):
+        self.auth("damascus")
+        res = self.client.get(f"/api/office/members/{self.small.pk}/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["office_code"], self.small.office_code)
+
+    def test_retrieve_foreign_member_denied(self):
+        other_big = create_big_office(name="بعيد", username="farb", password=PASSWORD)
+        foreign = create_small_office(
+            tenant=other_big.tenant, name="بعيد ص", username="fars", password=PASSWORD
+        )
+        self.auth("damascus")
+        res = self.client.get(f"/api/office/members/{foreign.pk}/")
+        self.assertEqual(res.status_code, 404)
+
     def test_create_member_with_generated_code(self):
         self.auth("damascus")
         res = self.client.post(

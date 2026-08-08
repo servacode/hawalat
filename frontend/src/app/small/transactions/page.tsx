@@ -2,7 +2,7 @@
 
 /** سجل حركات المكتب الصغير مع فلتر (الجزء 3-ج). */
 
-import { CalendarDays, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, Hourglass, MapPin, PackageCheck, RefreshCw, Undo2, UserCheck, UserRound } from "lucide-react";
+import { Banknote, CalendarDays, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, Hourglass, MapPin, PackageCheck, RefreshCw, Undo2, UserCheck, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Pagination, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
 import { DoneCheck } from "@/components/transactions/DoneCheck";
@@ -102,8 +102,9 @@ export default function MyTransactionsPage() {
                   </div>
                   <span dir="ltr" className="tnum ms-auto text-sm text-muted">{t.reference_code}</span>
                 </div>
-                <p className="tnum text-xl font-bold">{formatMoney(t.amount, t.currency_received)}</p>
                 <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
+                  <TxnField icon={Banknote} label="المبلغ"
+                    value={<span className="tnum text-base font-bold">{formatMoney(t.amount, t.currency_received)}</span>} />
                   <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />
                   {t.sender && <TxnField icon={UserRound} label="المرسِل" value={t.sender} />}
                   <TxnField icon={MapPin} label="الوجهة" value={t.destination} />

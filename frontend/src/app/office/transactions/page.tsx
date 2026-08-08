@@ -2,7 +2,7 @@
 
 /** سجل حركات المكتب الكبير (الجزء 11): كل المنفَّذ + فلتر احترافي + مدفوعة/تسليم/عكس. */
 
-import { Building2, CalendarDays, Check, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, MapPin, PackageCheck, Pencil, RefreshCw, Undo2, UserCheck, Wallet } from "lucide-react";
+import { Banknote, Building2, CalendarDays, Check, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, MapPin, PackageCheck, Pencil, RefreshCw, Undo2, UserCheck, Wallet } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Pagination, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
@@ -115,38 +115,11 @@ export default function OfficeHistoryPage() {
       // التسليم نهائي مطلق — الزبون استلم وذهب: لا أي إجراء
       return <span className="whitespace-nowrap text-sm text-muted">سُلّمت — نهائي</span>;
     }
-    if (compact) {
-      // أزرار أيقونية بسطر واحد للجدول (ملاحظة 30) — الاسم tooltip
-      const iconBtn =
-        "flex size-8 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-brand hover:text-brand-700 disabled:opacity-40";
-      return (
-        <div className="flex flex-nowrap items-center gap-1.5">
-          {t.payment_status !== "paid" && (
-            <button type="button" title="مدفوعة" aria-label="مدفوعة" className={iconBtn}
-              disabled={busy === t.id} onClick={() => act(t, "pay")}>
-              <HandCoins className="size-4" />
-            </button>
-          )}
-          <button type="button" title="تم التسليم" aria-label="تم التسليم" className={iconBtn}
-            disabled={busy === t.id} onClick={() => act(t, "deliver")}>
-            <PackageCheck className="size-4" />
-          </button>
-          {t.payment_status !== "paid" && (
-            <button type="button" title="تعديل" aria-label="تعديل" className={iconBtn}
-              disabled={busy === t.id} onClick={() => openEdit(t)}>
-              <Pencil className="size-4" />
-            </button>
-          )}
-          <button type="button" title="عكس" aria-label="عكس"
-            className="flex size-8 items-center justify-center rounded-lg border border-danger/40 text-danger transition-colors hover:bg-danger hover:text-white disabled:opacity-40"
-            disabled={busy === t.id} onClick={() => act(t, "reverse")}>
-            <Undo2 className="size-4" />
-          </button>
-        </div>
-      );
-    }
+    // مكتوبة دائماً (ملاحظة 33) — وفي الجدول بسطر واحد بلا التفاف وأصغر حجماً
     return (
-      <div className="flex flex-wrap gap-1.5">
+      <div className={compact
+        ? "flex flex-nowrap items-center gap-1 [&_button]:px-2 [&_button]:text-xs"
+        : "flex flex-wrap gap-1.5"}>
         {t.payment_status !== "paid" && (
           <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "pay")}>
             <HandCoins className="size-4" />مدفوعة
@@ -205,8 +178,9 @@ export default function OfficeHistoryPage() {
                   </div>
                   <span dir="ltr" className="tnum ms-auto text-sm text-muted">{t.reference_code}</span>
                 </div>
-                <p className="tnum text-xl font-bold">{formatMoney(t.amount, t.currency_received)}</p>
                 <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
+                  <TxnField icon={Banknote} label="المبلغ"
+                    value={<span className="tnum text-base font-bold">{formatMoney(t.amount, t.currency_received)}</span>} />
                   <TxnField icon={Building2} label="من مكتب" value={t.created_by_name} />
                   <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />
                   <TxnField icon={MapPin} label="الوجهة" value={t.destination} />
@@ -222,7 +196,7 @@ export default function OfficeHistoryPage() {
           ))}
         </div>
       ) : (
-        <Table>
+        <Table className="[&_td]:px-2 [&_th]:px-2 [&_td]:text-[15px]">
           <THead>
             <TR>
               <TH>المرجع</TH><TH>من مكتب</TH><TH>المستفيد</TH><TH>المبلغ</TH>
@@ -234,9 +208,9 @@ export default function OfficeHistoryPage() {
           <TBody>
             {pager.slice.map((t) => (
               <TR key={t.id}>
-                <TD>
-                  <span dir="ltr" className="tnum block text-sm">{t.reference_code}</span>
-                  <span className="tnum block text-xs text-muted">{formatDate(t.created_at)}</span>
+                <TD className="w-px">
+                  <span dir="ltr" className="tnum block text-right text-sm leading-snug">{t.reference_code}</span>
+                  <span className="tnum block text-right text-xs leading-snug text-muted">{formatDate(t.created_at)}</span>
                 </TD>
                 <TD className="whitespace-nowrap">{t.created_by_name}</TD>
                 <TD>{t.beneficiary}</TD>

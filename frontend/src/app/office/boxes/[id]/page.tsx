@@ -10,6 +10,10 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   ArrowRight,
+  Banknote,
+  Building2,
+  CalendarDays,
+  ReceiptText,
   Scale,
 } from "lucide-react";
 import Link from "next/link";
@@ -38,6 +42,7 @@ import {
   useViewMode,
   type BadgeStatus,
 } from "@/components/ui";
+import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi } from "@/lib/authedApi";
 import { balanceTone, formatDateTime, formatMoney } from "@/lib/format";
 
@@ -260,20 +265,23 @@ export default function BoxDetailsPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {pager.slice.map((r) => (
             <Card key={r.id}>
-              <CardBody className="flex flex-col gap-2 py-3.5">
+              <CardBody className="flex flex-col gap-2.5 py-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <Badge status={KIND_BADGE[r.kind]}>{KIND_LABEL[r.kind]}</Badge>
-                  <span className="tnum text-xs text-muted">{formatDateTime(r.at)}</span>
                 </div>
-                <p className="tnum text-lg font-bold">
-                  {Number(r.in) > 0 ? (
-                    <span className="text-pos">داخل {formatMoney(r.in)}</span>
-                  ) : (
-                    <span className="text-neg">خارج {formatMoney(r.out)}</span>
-                  )}
-                </p>
-                {r.member && <p className="text-sm"><span className="text-muted">المكتب:</span> {r.member}</p>}
-                <p className="break-words text-sm text-muted">{r.memo}</p>
+                {/* حقول بأيقونات كنمط كروت الحركات (ملاحظة 35) */}
+                <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
+                  <TxnField icon={Banknote} label="المبلغ"
+                    value={Number(r.in) > 0 ? (
+                      <span className="tnum text-base font-bold text-pos">داخل {formatMoney(r.in)}</span>
+                    ) : (
+                      <span className="tnum text-base font-bold text-neg">خارج {formatMoney(r.out)}</span>
+                    )} />
+                  {r.member && <TxnField icon={Building2} label="المكتب" value={r.member} />}
+                  <TxnField icon={ReceiptText} label="البيان" value={r.memo || "—"} />
+                  <TxnField icon={CalendarDays} label="التاريخ"
+                    value={<span className="tnum">{formatDateTime(r.at)}</span>} />
+                </div>
               </CardBody>
             </Card>
           ))}
