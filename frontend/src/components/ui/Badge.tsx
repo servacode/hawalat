@@ -22,7 +22,7 @@ const styles: Record<BadgeStatus, string> = {
 export const badgeLabels: Record<BadgeStatus, string> = {
   pending: "قيد الانتظار",
   accepted: "مقبولة",
-  cancelled: "ملغية",
+  cancelled: "مرفوضة",
   paid: "مدفوعة",
   delivered: "تم التسليم",
   reversed: "معكوسة",

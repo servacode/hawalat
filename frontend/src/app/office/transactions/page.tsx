@@ -2,9 +2,10 @@
 
 /** سجل حركات المكتب الكبير (الجزء 11): كل المنفَّذ + فلتر احترافي + مدفوعة/تسليم/عكس. */
 
-import { Check, HandCoins, PackageCheck, Pencil, RefreshCw, Undo2 } from "lucide-react";
+import { Check, CircleCheck, CircleX, HandCoins, PackageCheck, Pencil, RefreshCw, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, EmptyState, Input, Modal, Skeleton, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
+import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
 import { authedApi } from "@/lib/authedApi";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
@@ -23,6 +24,15 @@ const approvalBadge: Record<Txn["approval_status"], BadgeStatus> = {
   accepted: "accepted", cancelled: "cancelled", reversed: "reversed",
 };
 
+// كروت الحالات الذكية: إحصائية وفلتر معاً — الضغط يفلتر وضغطة ثانية تلغي
+const STATUS_CARDS: StatusCardDef<Txn>[] = [
+  { key: "accepted", label: "مقبولة", icon: CircleCheck, tone: "success", match: (t) => t.approval_status === "accepted" },
+  { key: "paid", label: "مدفوعة", icon: HandCoins, tone: "info", match: (t) => t.payment_status === "paid" },
+  { key: "delivered", label: "تم التسليم", icon: PackageCheck, tone: "brand", match: (t) => t.delivery_status === "delivered" },
+  { key: "cancelled", label: "مرفوضة", icon: CircleX, tone: "danger", match: (t) => t.approval_status === "cancelled" },
+  { key: "reversed", label: "معكوسة", icon: Undo2, tone: "accent", match: (t) => t.approval_status === "reversed" },
+];
+
 export default function OfficeHistoryPage() {
   const [txns, setTxns] = useState<Txn[] | null>(null);
   const [q, setQ] = useState("");
@@ -35,12 +45,15 @@ export default function OfficeHistoryPage() {
   const load = useCallback(() => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (approval) params.set("approval", approval);
     authedApi<Txn[]>(`/api/office/transactions/history/?${params}`)
       .then(setTxns)
       .catch(() => {});
-  }, [q, approval]);
+  }, [q]);
   useEffect(load, [load]);
+
+  // الفلترة بالحالة محلياً — حتى تبقى أرقام الكروت شاملة دائماً
+  const activeDef = STATUS_CARDS.find((d) => d.key === approval);
+  const shown = txns && activeDef ? txns.filter(activeDef.match) : txns;
 
   function openEdit(t: Txn) {
     setEditFor(t);
@@ -78,26 +91,19 @@ export default function OfficeHistoryPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <StatusFilterCards items={txns ?? []} defs={STATUS_CARDS} active={approval} onChange={setApproval} />
+
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-48 flex-1">
           <Input label="بحث" placeholder="مرجع / مرسِل / مستفيد / وجهة" value={q}
             onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div className="min-w-40">
-          <Select label="الحالة" placeholder="الكل" value={approval}
-            onChange={(e) => setApproval(e.target.value)}
-            options={[
-              { value: "accepted", label: "مقبولة" },
-              { value: "cancelled", label: "ملغية" },
-              { value: "reversed", label: "معكوسة" },
-            ]} />
-        </div>
         <Button variant="ghost" onClick={load}><RefreshCw className="size-4" />تحديث</Button>
       </div>
 
-      {!txns ? (
+      {!shown ? (
         <Skeleton className="h-64" />
-      ) : txns.length === 0 ? (
+      ) : shown.length === 0 ? (
         <EmptyState title="لا حركات منفَّذة بعد" />
       ) : (
         <Table>
@@ -109,7 +115,7 @@ export default function OfficeHistoryPage() {
             </TR>
           </THead>
           <TBody>
-            {txns.map((t) => (
+            {shown.map((t) => (
               <TR key={t.id}>
                 <TD className="tnum text-sm text-muted">{t.reference_code}</TD>
                 <TD className="tnum text-sm">{formatDateTime(t.created_at)}</TD>
