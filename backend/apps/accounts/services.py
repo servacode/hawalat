@@ -45,8 +45,11 @@ def generate_small_office_code(tenant: Tenant) -> str:
 @transaction.atomic
 def create_big_office(*, name: str, username: str, password: str, phone: str = "") -> User:
     """ينشئ مستأجراً (مكتباً كبيراً) + مستخدمه الوحيد بكود مولّد."""
+    from apps.boxes.services import seed_default_currencies
+
     code = generate_big_office_code()
     tenant = Tenant.objects.create(name=name, code=code)
+    seed_default_currencies(tenant)
     return User.objects.create_user(
         username=username,
         password=password,

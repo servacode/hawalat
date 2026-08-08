@@ -21,7 +21,7 @@ class BaseReportsTestCase(APITestCase):
             tenant=self.tenant, name="مكتب حلب", username="aleppo", password=PASSWORD
         )
         with tenant_context(self.tenant):
-            usd = Currency.objects.create(code="USD", name="دولار")
+            usd = Currency.objects.get(code="USD")
             self.box = IntermediaryBox.objects.create(name="الوعد", number="101")
             self.box.currencies.add(usd)
         self.auth("damascus")

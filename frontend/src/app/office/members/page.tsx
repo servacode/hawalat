@@ -7,7 +7,7 @@
 
 import { Ban, Flag, Gauge, KeyRound, LockOpen, MessageCircle, Save, Scale, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
+import { Badge, Button, EmptyState, Input, Modal, PasswordInput, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { buildReconciliationMessage, sendToWhatsApp, type ReconciliationRow } from "@/lib/whatsapp";
@@ -183,7 +183,7 @@ export default function MembersPage() {
             onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} required />
           <Input label="اسم المستخدم" value={createForm.username}
             onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })} required />
-          <Input label="كلمة المرور" type="password" hint="8 أحرف على الأقل" value={createForm.password}
+          <PasswordInput label="كلمة المرور" hint="8 أحرف على الأقل" value={createForm.password}
             onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} required />
           <Input label="رقم هاتف واتساب" value={createForm.phone}
             onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
@@ -255,7 +255,7 @@ export default function MembersPage() {
       <Modal open={resetFor !== null} onClose={() => setResetFor(null)}
         title={resetFor ? `استعادة كلمة مرور ${resetFor.name}` : ""}>
         <form onSubmit={doReset} className="flex flex-col gap-4">
-          <Input label="كلمة المرور الجديدة" type="password" hint="8 أحرف على الأقل"
+          <PasswordInput label="كلمة المرور الجديدة" hint="8 أحرف على الأقل"
             value={resetPw} onChange={(e) => setResetPw(e.target.value)} required minLength={8} />
           {resetDone && <p className="text-sm text-success">تمت الاستعادة ✓</p>}
           <div className="flex justify-end gap-3">

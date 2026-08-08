@@ -34,7 +34,7 @@ class BaseWaTestCase(APITestCase):
         self.small.whatsapp_chat_id = "group-123@g.us"
         self.small.save(update_fields=["whatsapp_chat_id"])
         with tenant_context(self.tenant):
-            Currency.objects.create(code="USD", name="دولار")
+            Currency.objects.get(code="USD")
 
     def auth(self, username):
         res = self.client.post(

@@ -4,20 +4,7 @@
 
 import { Ban, Building2, CircleCheck, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import {
-  Badge,
-  Button,
-  EmptyState,
-  Input,
-  Modal,
-  Skeleton,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-  Table,
-} from "@/components/ui";
+import { Badge, Button, EmptyState, Input, Modal, PasswordInput, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
 
 interface Office {
@@ -144,9 +131,8 @@ export default function OfficesPage() {
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             required
           />
-          <Input
+          <PasswordInput
             label="كلمة المرور"
-            type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             hint="8 أحرف على الأقل"

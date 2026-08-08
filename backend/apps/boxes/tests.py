@@ -25,6 +25,24 @@ D = Decimal
 PASSWORD = "secret12345"
 
 
+class DefaultCurrenciesTests(APITestCase):
+    """العملات المتفق عليها (دولار/يورو/تركي/سوري) تُزرع تلقائياً لكل مكتب كبير جديد."""
+
+    def test_big_office_gets_default_currencies(self):
+        big = create_big_office(name="مكتب اختبار", username="curr_test", password=PASSWORD)
+        with tenant_context(big.tenant):
+            codes = set(Currency.objects.values_list("code", flat=True))
+        self.assertEqual(codes, {"USD", "EUR", "TRY", "SYP"})
+
+    def test_seeding_is_isolated_per_tenant(self):
+        big1 = create_big_office(name="مكتب 1", username="curr_t1", password=PASSWORD)
+        big2 = create_big_office(name="مكتب 2", username="curr_t2", password=PASSWORD)
+        with tenant_context(big1.tenant):
+            self.assertEqual(Currency.objects.count(), 4)
+        with tenant_context(big2.tenant):
+            self.assertEqual(Currency.objects.count(), 4)
+
+
 class BaseBoxesTestCase(APITestCase):
     def setUp(self):
         self.big = create_big_office(name="مكتب دمشق", username="damascus", password=PASSWORD)
@@ -33,7 +51,7 @@ class BaseBoxesTestCase(APITestCase):
             tenant=self.tenant, name="مكتب حلب", username="aleppo", password=PASSWORD
         )
         with tenant_context(self.tenant):
-            self.usd = Currency.objects.create(code="USD", name="دولار أمريكي")
+            self.usd = Currency.objects.get(code="USD")
             self.box = IntermediaryBox.objects.create(name="الوعد", number="101")
             self.box.currencies.add(self.usd)
 
@@ -169,12 +187,12 @@ class ApiFlowTests(BaseBoxesTestCase):
         self.auth("damascus")
         # إنشاء عملة وصندوق عبر الـ API
         res = self.client.post(
-            "/api/office/currencies/", {"code": "TRY", "name": "ليرة تركية"}, format="json"
+            "/api/office/currencies/", {"code": "KWD", "name": "دينار كويتي"}, format="json"
         )
         self.assertEqual(res.status_code, 201)
         res = self.client.post(
             "/api/office/boxes/",
-            {"name": "الفجر", "number": "102", "currencies": ["TRY", "USD"]},
+            {"name": "الفجر", "number": "102", "currencies": ["KWD", "USD"]},
             format="json",
         )
         self.assertEqual(res.status_code, 201)
@@ -183,14 +201,14 @@ class ApiFlowTests(BaseBoxesTestCase):
         # اعتماد عبر الـ API
         res = self.client.post(
             f"/api/office/boxes/{box_id}/deposit/",
-            {"small_user": self.small.pk, "currency": "TRY", "amount": "3000"},
+            {"small_user": self.small.pk, "currency": "KWD", "amount": "3000"},
             format="json",
         )
         self.assertEqual(res.status_code, 201)
         entry_id = res.data["entry_id"]
 
         # كشف الصندوق
-        res = self.client.get(f"/api/office/boxes/{box_id}/statement/?currency=TRY")
+        res = self.client.get(f"/api/office/boxes/{box_id}/statement/?currency=KWD")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(D(res.data["balance"]), D("3000"))
         self.assertEqual(len(res.data["lines"]), 1)
@@ -198,7 +216,7 @@ class ApiFlowTests(BaseBoxesTestCase):
         # عكس القيد عبر الـ API → يعود الرصيد صفراً
         res = self.client.post(f"/api/office/entries/{entry_id}/reverse/")
         self.assertEqual(res.status_code, 201)
-        res = self.client.get(f"/api/office/boxes/{box_id}/statement/?currency=TRY")
+        res = self.client.get(f"/api/office/boxes/{box_id}/statement/?currency=KWD")
         self.assertEqual(D(res.data["balance"]), D("0"))
 
     def test_small_office_sees_own_balances(self):
@@ -229,14 +247,16 @@ class TenantIsolationBoxesTests(BaseBoxesTestCase):
     def setUp(self):
         super().setUp()
         self.other_big = create_big_office(name="مكتب آخر", username="otherbig", password=PASSWORD)
-        with tenant_context(self.other_big.tenant):
-            Currency.objects.create(code="EUR", name="يورو")
+        with tenant_context(self.tenant):
+            Currency.objects.create(code="KWD", name="دينار كويتي")
 
     def test_other_tenant_sees_only_own_currencies_and_boxes(self):
         self.auth("otherbig")
         res = self.client.get("/api/office/currencies/")
         codes = [c["code"] for c in (res.data.get("results") or res.data)]
-        self.assertEqual(codes, ["EUR"])
+        # يرى عملاته الافتراضية الأربع فقط — ولا يرى KWD المضافة عند المستأجر الآخر
+        self.assertEqual(sorted(codes), ["EUR", "SYP", "TRY", "USD"])
+        self.assertNotIn("KWD", codes)
 
         res = self.client.get("/api/office/boxes/")
         boxes = res.data.get("results", res.data)

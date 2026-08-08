@@ -29,18 +29,18 @@ export function Shell({
 }) {
   const pathname = usePathname();
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-60 shrink-0 flex-col border-e border-border bg-surface md:flex">
-        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-brand text-lg font-bold text-white">
+    <div className="flex min-h-screen gap-4 bg-bg p-3 md:p-4">
+      <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-64 shrink-0 flex-col overflow-y-auto rounded-2xl border border-border bg-surface shadow-sm md:flex">
+        <div className="flex items-center gap-3 px-5 pb-4 pt-5">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white shadow-sm">
             ح
           </div>
           <div className="leading-tight">
-            <p className="font-bold">حوالات</p>
+            <p className="text-lg font-bold">حوالات</p>
             {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
           </div>
         </div>
-        <nav className="flex flex-1 flex-col gap-1 p-3">
+        <nav className="flex flex-1 flex-col gap-1.5 px-3 pt-2">
           {nav.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
@@ -50,9 +50,9 @@ export function Shell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-base transition-colors",
+                  "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-base transition-colors",
                   active
-                    ? "bg-brand/10 font-bold text-brand-700"
+                    ? "bg-brand font-semibold text-white shadow-sm"
                     : "text-muted hover:bg-surface-2 hover:text-ink",
                 )}
               >
@@ -62,14 +62,14 @@ export function Shell({
             );
           })}
         </nav>
-        <div className="flex flex-col gap-2 border-t border-border p-4">
+        <div className="m-3 flex flex-col gap-2 rounded-xl bg-surface-2/60 p-3">
           <InstallButton />
           <LogoutButton />
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-border bg-surface px-5 py-4 md:px-8">
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <header className="sticky top-4 z-10 flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface/95 px-5 py-3.5 shadow-sm backdrop-blur md:px-6">
           <h1 className="text-xl font-bold">{title}</h1>
           <div className="flex items-center gap-2">
             <NotificationBell />
@@ -78,7 +78,7 @@ export function Shell({
             </div>
           </div>
         </header>
-        <main className="flex-1 px-5 py-6 md:px-8">{children}</main>
+        <main className="flex-1 px-0.5 pb-2">{children}</main>
       </div>
     </div>
   );

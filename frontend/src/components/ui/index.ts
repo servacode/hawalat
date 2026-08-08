@@ -3,6 +3,7 @@ export { Button } from "./Button";
 export { Badge, badgeLabels, type BadgeStatus } from "./Badge";
 export { Card, CardHeader, CardTitle, CardBody } from "./Card";
 export { Input } from "./Input";
+export { PasswordInput } from "./PasswordInput";
 export { Select, type SelectOption } from "./Select";
 export { Table, THead, TBody, TR, TH, TD } from "./Table";
 export { StatCard } from "./StatCard";

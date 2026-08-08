@@ -35,9 +35,9 @@ class BaseTxnTestCase(APITestCase):
             tenant=self.tenant, name="مكتب حلب", username="aleppo", password=PASSWORD
         )
         with tenant_context(self.tenant):
-            self.try_ = Currency.objects.create(code="TRY", name="ليرة تركية")
-            self.syp = Currency.objects.create(code="SYP", name="ليرة سورية")
-            self.usd = Currency.objects.create(code="USD", name="دولار")
+            self.try_ = Currency.objects.get(code="TRY")
+            self.syp = Currency.objects.get(code="SYP")
+            self.usd = Currency.objects.get(code="USD")
             self.box = IntermediaryBox.objects.create(name="الوعد", number="101")
             self.box.currencies.add(self.try_, self.syp, self.usd)
         # حد سالب واسع افتراضياً

@@ -8,7 +8,7 @@
 
 import { Lightbulb, Save } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Input, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Input, PasswordInput, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
 import { formatDateTime } from "@/lib/format";
 
@@ -72,7 +72,7 @@ export default function OfficeSettingsPage() {
             <Input label="عنوان بوابة الواتساب" dir="ltr" placeholder="https://gateway.example.com/api/send"
               value={gatewayUrl} onChange={(e) => setGatewayUrl(e.target.value)}
               hint="بوابة HTTP متوافقة (مثل WAHA) — POST {chatId, text}" />
-            <Input label="رمز البوابة (Token)" dir="ltr" type="password"
+            <PasswordInput label="رمز البوابة (Token)" dir="ltr"
               placeholder={wa.has_token ? "•••••• (محفوظ)" : ""}
               value={token} onChange={(e) => setToken(e.target.value)} />
           </div>

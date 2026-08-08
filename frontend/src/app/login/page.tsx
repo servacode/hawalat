@@ -2,10 +2,10 @@
 
 /** حوالات — بوابة الدخول الموحّدة (المشهد 6): دور واحد لكل مستخدم يحدد وجهته. */
 
-import { LogIn } from "lucide-react";
+import { LogIn, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Card, CardBody, Input, Modal } from "@/components/ui";
+import { Button, Card, CardBody, Input, Modal, PasswordInput } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { roleHome, saveSession, type Session } from "@/lib/auth";
 
@@ -56,14 +56,16 @@ export default function LoginPage() {
             <form onSubmit={onSubmit} className="flex flex-col gap-4">
               <Input
                 label="اسم المستخدم"
+                icon={UserRound}
+                placeholder="اسم المستخدم"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
                 required
               />
-              <Input
+              <PasswordInput
                 label="كلمة المرور"
-                type="password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"

@@ -28,6 +28,26 @@ from .models import (
 
 __all__ = ["reverse_entry"]
 
+# ---------------------------------------------------------------- العملات الافتراضية
+
+# العملات المتفق عليها (الجزء 17): تُزرع تلقائياً لكل مكتب كبير جديد،
+# ويبقى المكتب حراً بإضافة غيرها أو تعطيلها.
+DEFAULT_CURRENCIES = [
+    ("USD", "دولار أمريكي"),
+    ("EUR", "يورو"),
+    ("TRY", "ليرة تركية"),
+    ("SYP", "ليرة سورية"),
+]
+
+
+def seed_default_currencies(tenant) -> None:
+    """يزرع العملات الافتراضية للمستأجر (idempotent — لا يكرر الموجود)."""
+    from .models import Currency
+
+    for code, name in DEFAULT_CURRENCIES:
+        Currency.all_objects.get_or_create(tenant=tenant, code=code, defaults={"name": name})
+
+
 # ---------------------------------------------------------------- توفير الحسابات
 
 
