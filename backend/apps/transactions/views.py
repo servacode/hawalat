@@ -321,11 +321,13 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
         txn = self._get(pk)
         if txn is None:
             return Response(status=404)
-        delivered = request.data.get("delivered", True)
-        mark_delivered(txn, delivered)
-        audit(request, "mark_delivered", txn, delivered=delivered)
+        try:
+            mark_delivered(txn)
+        except ValidationError as e:
+            return Response({"detail": e.messages[0]}, status=400)
+        audit(request, "mark_delivered", txn)
         # المكتب الصغير يجب أن يعرف أن حركة زبونه سُلّمت (ملاحظة التجربة 7)
-        if delivered and txn.created_by_id != request.user.id:
+        if txn.created_by_id != request.user.id:
             notify(
                 txn.created_by,
                 Notification.Type.TXN_DELIVERED,

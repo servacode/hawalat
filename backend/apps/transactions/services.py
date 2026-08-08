@@ -228,11 +228,16 @@ def mark_paid(txn: Transaction) -> Transaction:
     return txn
 
 
-def mark_delivered(txn: Transaction, delivered: bool = True) -> Transaction:
-    """تم التسليم: متابعة فقط، بلا قيود (§4-ج) — قابلة للتجاوز."""
-    txn.delivery_status = (
-        Transaction.Delivery.DELIVERED if delivered else Transaction.Delivery.NOT_DELIVERED
-    )
+def mark_delivered(txn: Transaction) -> Transaction:
+    """
+    تم التسليم: متابعة فقط، بلا قيود (§4-ج).
+    نهائي مطلق — الزبون استلم وذهب: لا تراجع ولا أي إجراء بعده (ملاحظة التجربة 9).
+    """
+    if txn.approval_status != Transaction.Approval.ACCEPTED:
+        raise ValidationError("لا يُعلَّم التسليم إلا لحركة مقبولة.")
+    if txn.delivery_status == Transaction.Delivery.DELIVERED:
+        raise ValidationError("الحركة مُسلَّمة مسبقاً — التسليم نهائي.")
+    txn.delivery_status = Transaction.Delivery.DELIVERED
     txn.save(update_fields=["delivery_status", "updated_at"])
     return txn
 
@@ -245,9 +250,9 @@ def reverse_transaction(txn: Transaction, memo: str = "") -> Transaction:
     """عكس حركة مقبولة بالكامل (بديل الحذف §4-و): يعكس الدفع ثم القبول."""
     if txn.approval_status != Transaction.Approval.ACCEPTED:
         raise ValidationError("لا يُعكس إلا حركة مقبولة.")
-    # الزبون استلم المال فعلياً — لا رجعة بعد التسليم (ملاحظة التجربة 7)
+    # الزبون استلم وذهب — التسليم نهائي مطلق، لا أي إجراء بعده (ملاحظتا التجربة 7 و9)
     if txn.delivery_status == Transaction.Delivery.DELIVERED:
-        raise ValidationError("لا يُعكس حركة تم تسليمها — تراجع عن التسليم أولاً إن كان عُلّم خطأً.")
+        raise ValidationError("لا يُعكس حركة تم تسليمها — التسليم نهائي.")
     if txn.payment_entry_id:
         reverse_entry(txn.payment_entry, memo=f"عكس قبض {txn.reference_code}")
         txn.payment_status = Transaction.Payment.UNPAID
@@ -266,7 +271,7 @@ def edit_accepted_transaction(*, txn: Transaction, **new_values) -> Transaction:
     if txn.approval_status != Transaction.Approval.ACCEPTED:
         raise ValidationError("التعديل المحاسبي متاح للحركات المقبولة فقط.")
     if txn.delivery_status == Transaction.Delivery.DELIVERED:
-        raise ValidationError("لا تُعدَّل حركة تم تسليمها — تراجع عن التسليم أولاً إن كان عُلّم خطأً.")
+        raise ValidationError("لا تُعدَّل حركة تم تسليمها — التسليم نهائي.")
     if txn.payment_entry_id:
         raise ValidationError("اعكس القبض أولاً قبل تعديل حركة مدفوعة.")
 

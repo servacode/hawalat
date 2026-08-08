@@ -77,10 +77,10 @@ export default function OfficeHistoryPage() {
     }
   }
 
-  async function act(t: Txn, action: "pay" | "deliver" | "reverse", body?: object) {
+  async function act(t: Txn, action: "pay" | "deliver" | "reverse") {
     setBusy(t.id);
     try {
-      await authedApi(`/api/office/transactions/${t.id}/${action}/`, { method: "POST", body });
+      await authedApi(`/api/office/transactions/${t.id}/${action}/`, { method: "POST" });
       load();
     } catch {
       /* الخطأ يظهر بإعادة التحميل */
@@ -134,38 +134,30 @@ export default function OfficeHistoryPage() {
                   {t.delivery_status === "delivered" ? <Badge status="delivered" /> : <span className="text-muted">—</span>}
                 </TD>
                 <TD>
-                  {t.approval_status === "accepted" && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {t.payment_status !== "paid" && (
-                        <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "pay")}>
-                          <HandCoins className="size-4" />مدفوعة
-                        </Button>
-                      )}
-                      {t.delivery_status !== "delivered" ? (
+                  {t.approval_status === "accepted" &&
+                    (t.delivery_status === "delivered" ? (
+                      // التسليم نهائي مطلق — الزبون استلم وذهب: لا أي إجراء
+                      <span className="text-sm text-muted">سُلّمت — نهائي</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {t.payment_status !== "paid" && (
+                          <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "pay")}>
+                            <HandCoins className="size-4" />مدفوعة
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "deliver")}>
                           <PackageCheck className="size-4" />تم التسليم
                         </Button>
-                      ) : (
-                        // بعد التسليم لا عكس ولا تعديل — الزبون استلم المال؛ التراجع متاح لتصحيح خطأ التعليم فقط
-                        <Button size="sm" variant="ghost" disabled={busy === t.id}
-                          onClick={() => act(t, "deliver", { delivered: false })}>
-                          <Undo2 className="size-4" />تراجع عن التسليم
-                        </Button>
-                      )}
-                      {t.delivery_status !== "delivered" && (
-                        <>
-                          {t.payment_status !== "paid" && (
-                            <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
-                              <Pencil className="size-4" />تعديل
-                            </Button>
-                          )}
-                          <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
-                            <Undo2 className="size-4" />عكس
+                        {t.payment_status !== "paid" && (
+                          <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
+                            <Pencil className="size-4" />تعديل
                           </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                        )}
+                        <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
+                          <Undo2 className="size-4" />عكس
+                        </Button>
+                      </div>
+                    ))}
                 </TD>
               </TR>
             ))}

@@ -326,14 +326,27 @@ class NoReverseAfterDeliveryTests(ReverseEditTests):
         )
         self.assertEqual(res.status_code, 400)
 
-    def test_reverse_allowed_after_undo_delivery(self):
+    def test_no_undo_delivery_at_all(self):
+        """التسليم نهائي مطلق: لا تراجع ولا إعادة تعليم — الزبون استلم وذهب."""
         txn_id = self._accepted()
         self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
-        self.client.post(
+        # محاولة تراجع (delivered=False) أو إعادة تعليم — كلها مرفوضة والحالة لا تتغير
+        res = self.client.post(
             f"/api/office/transactions/{txn_id}/deliver/", {"delivered": False}, format="json"
         )
-        res = self.client.post(f"/api/office/transactions/{txn_id}/reverse/")
-        self.assertEqual(res.data["approval_status"], "reversed")
+        self.assertEqual(res.status_code, 400)
+        res = self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
+        self.assertEqual(res.status_code, 400)
+        res = self.client.get(f"/api/office/transactions/history/")
+        row = next(t for t in res.data if t["id"] == txn_id)
+        self.assertEqual(row["delivery_status"], "delivered")
+
+    def test_deliver_requires_accepted(self):
+        self.auth("aleppo")
+        txn_id = self.send_txn().data["id"]
+        self.auth("damascus")
+        res = self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
+        self.assertEqual(res.status_code, 400)
 
 
 class PermissionTests(BaseTxnTestCase):
