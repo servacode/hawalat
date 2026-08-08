@@ -2,10 +2,11 @@
 
 /** سجل حركات المكتب الكبير (الجزء 11): كل المنفَّذ + فلتر احترافي + مدفوعة/تسليم/عكس. */
 
-import { Check, CircleCheck, CircleX, FileSpreadsheet, FileText, HandCoins, PackageCheck, Pencil, RefreshCw, Undo2 } from "lucide-react";
+import { Building2, CalendarDays, Check, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, MapPin, PackageCheck, Pencil, RefreshCw, Undo2, UserCheck, Wallet } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
+import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi, authedDownload } from "@/lib/authedApi";
 import { formatDate, formatMoney } from "@/lib/format";
 
@@ -162,23 +163,24 @@ export default function OfficeHistoryPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((t) => (
             <Card key={t.id}>
-              <CardBody className="flex flex-col gap-2 py-3.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span dir="ltr" className="tnum text-sm text-muted">{t.reference_code}</span>
+              <CardBody className="flex flex-col gap-2.5 py-3.5">
+                {/* الحالات صفاً أفقياً بالأعلى (ملاحظة 21) */}
+                <div className="flex flex-wrap items-center gap-1.5">
                   <Badge status={approvalBadge[t.approval_status]} />
-                </div>
-                <p className="tnum text-lg font-bold">{formatMoney(t.amount, t.currency_received)}</p>
-                <div className="flex flex-col gap-1 text-sm">
-                  <p><span className="text-muted">من مكتب:</span> {t.created_by_name}</p>
-                  <p><span className="text-muted">المستفيد:</span> {t.beneficiary}</p>
-                  <p><span className="text-muted">الوجهة:</span> {t.destination}</p>
-                  <p><span className="text-muted">الأجور (رأس مال/مستحقة):</span> {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)} ${t.currency_received}` : "—"}</p>
-                  <p><span className="text-muted">الصندوق:</span> {t.box_name ?? "—"}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="tnum text-muted">{formatDate(t.created_at)}</span>
                   {t.payment_status === "paid" && <Badge status="paid" />}
                   {t.delivery_status === "delivered" && <Badge status="delivered" />}
+                </div>
+                <p className="text-start"><span dir="ltr" className="tnum text-sm text-muted">{t.reference_code}</span></p>
+                <p className="tnum text-xl font-bold">{formatMoney(t.amount, t.currency_received)}</p>
+                <div className="flex flex-col gap-1.5">
+                  <TxnField icon={Building2} label="من مكتب" value={t.created_by_name} />
+                  <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />
+                  <TxnField icon={MapPin} label="الوجهة" value={t.destination} />
+                  <TxnField icon={Coins} label="الأجور"
+                    value={t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)} ${t.currency_received}` : "—"} />
+                  <TxnField icon={Wallet} label="الصندوق" value={t.box_name ?? "—"} />
+                  <TxnField icon={CalendarDays} label="التاريخ"
+                    value={<span className="tnum">{formatDate(t.created_at)}</span>} />
                 </div>
                 {rowActions(t)}
               </CardBody>
