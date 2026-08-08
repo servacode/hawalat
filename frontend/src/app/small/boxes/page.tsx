@@ -5,6 +5,7 @@
  * صندوق لكل عملة (له/عليه/الصافي) + كشف تفصيلي + مطابقة تُرسل للواتساب بضغطة زر.
  */
 
+import { MessageCircle, Scale, ScrollText } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Card, CardBody, EmptyState, Modal, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -80,7 +81,7 @@ export default function SmallBoxesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <p className="text-muted">صندوق لكل عملة — الحساب تلقائي بالكامل.</p>
-        <Button variant="accent" onClick={openRecon}>📊 مطابقة + إرسال</Button>
+        <Button variant="accent" onClick={openRecon}><Scale className="size-4" />مطابقة + إرسال</Button>
       </div>
 
       {!balances ? (
@@ -96,7 +97,7 @@ export default function SmallBoxesPage() {
                 <CardBody className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <p className="font-bold">{b.currency}</p>
-                    <Button size="sm" variant="ghost" onClick={() => openStatement(b.currency)}>الكشف</Button>
+                    <Button size="sm" variant="ghost" onClick={() => openStatement(b.currency)}><ScrollText className="size-4" />الكشف</Button>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
@@ -184,7 +185,7 @@ export default function SmallBoxesPage() {
             {waSent && <p className="text-sm text-success">ثُبّتت المطابقة وفُتح الواتساب بالنص ✓</p>}
             <div className="flex justify-end">
               <Button variant="accent" disabled={reconBusy} onClick={commitAndSend}>
-                {reconBusy ? "جارٍ…" : "📲 تثبيت وإرسال للواتساب"}
+                {reconBusy ? "جارٍ…" : <><MessageCircle className="size-4" />تثبيت وإرسال للواتساب</>}
               </Button>
             </div>
           </div>

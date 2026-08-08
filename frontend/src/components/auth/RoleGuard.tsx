@@ -7,6 +7,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LogOut } from "lucide-react";
 import { clearSession, getSession, roleHome, type Role, type Session } from "@/lib/auth";
 
 export function RoleGuard({
@@ -59,8 +60,9 @@ export function LogoutButton() {
         clearSession();
         router.replace("/login");
       }}
-      className="text-sm text-muted transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-brand"
+      className="flex items-center gap-2 text-sm text-muted transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-brand"
     >
+      <LogOut className="size-4" aria-hidden="true" />
       تسجيل الخروج
     </button>
   );

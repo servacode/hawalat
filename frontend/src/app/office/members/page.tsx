@@ -5,6 +5,7 @@
  * (واتساب/هاتف/كود) + حدوده + كشفه + مطابقته (المشهد 4) بإرسال واتساب.
  */
 
+import { Ban, Flag, Gauge, KeyRound, LockOpen, MessageCircle, Save, Scale, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -133,13 +134,13 @@ export default function MembersPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-muted">مكاتبك الصغيرة — الفتح ضمن حد الباقة، وكل ملف يجمع كل ما يخص العضو.</p>
-        <Button onClick={() => setCreateOpen(true)}>+ مكتب صغير جديد</Button>
+        <Button onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />مكتب صغير جديد</Button>
       </div>
 
       {!members ? (
         <Skeleton className="h-64" />
       ) : members.length === 0 ? (
-        <EmptyState title="لا مكاتب صغيرة بعد" action={<Button onClick={() => setCreateOpen(true)}>فتح أول مكتب</Button>} />
+        <EmptyState title="لا مكاتب صغيرة بعد" action={<Button onClick={() => setCreateOpen(true)}><UserPlus className="size-4" />فتح أول مكتب</Button>} />
       ) : (
         <Table>
           <THead>
@@ -161,11 +162,11 @@ export default function MembersPage() {
                 </TD>
                 <TD>
                   <div className="flex flex-wrap gap-1.5">
-                    <Button size="sm" variant="ghost" onClick={() => openRecon(m)}>مطابقة</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setLimitFor(m)}>الحدود</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setResetFor(m)}>🔑</Button>
+                    <Button size="sm" variant="ghost" onClick={() => openRecon(m)}><Scale className="size-4" />مطابقة</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setLimitFor(m)}><Gauge className="size-4" />الحدود</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setResetFor(m)} aria-label="استعادة كلمة المرور"><KeyRound className="size-4" /></Button>
                     <Button size="sm" variant={m.is_blocked ? "primary" : "danger"} onClick={() => toggleBlock(m)}>
-                      {m.is_blocked ? "فك الحظر" : "حظر"}
+                      {m.is_blocked ? <><LockOpen className="size-4" />فك الحظر</> : <><Ban className="size-4" />حظر</>}
                     </Button>
                   </div>
                 </TD>
@@ -198,7 +199,7 @@ export default function MembersPage() {
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="flex justify-end gap-3 sm:col-span-2">
             <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>إلغاء</Button>
-            <Button type="submit">فتح المكتب</Button>
+            <Button type="submit"><UserPlus className="size-4" />فتح المكتب</Button>
           </div>
         </form>
       </Modal>
@@ -241,9 +242,9 @@ export default function MembersPage() {
               </Table>
             )}
             <div className="flex flex-wrap justify-end gap-3">
-              <Button variant="accent" onClick={sendRecon}>📲 إرسال مطابقة</Button>
+              <Button variant="accent" onClick={sendRecon}><MessageCircle className="size-4" />إرسال مطابقة</Button>
               <Button disabled={reconBusy} onClick={commitRecon}>
-                {reconBusy ? "جارٍ…" : "تثبيت كنقطة إغلاق"}
+                {reconBusy ? "جارٍ…" : <><Flag className="size-4" />تثبيت كنقطة إغلاق</>}
               </Button>
             </div>
           </div>
@@ -259,7 +260,7 @@ export default function MembersPage() {
           {resetDone && <p className="text-sm text-success">تمت الاستعادة ✓</p>}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setResetFor(null)}>إلغاء</Button>
-            <Button type="submit">إعادة التعيين</Button>
+            <Button type="submit"><KeyRound className="size-4" />إعادة التعيين</Button>
           </div>
         </form>
       </Modal>
@@ -278,7 +279,7 @@ export default function MembersPage() {
             onChange={(e) => setLimitForm({ ...limitForm, negative_limit: e.target.value })} required />
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setLimitFor(null)}>إلغاء</Button>
-            <Button type="submit">حفظ الحد</Button>
+            <Button type="submit"><Save className="size-4" />حفظ الحد</Button>
           </div>
         </form>
       </Modal>

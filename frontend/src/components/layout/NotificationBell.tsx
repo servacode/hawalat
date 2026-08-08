@@ -7,6 +7,7 @@ import { authedApi } from "@/lib/authedApi";
 import { connectWs, onWsEvent } from "@/lib/ws";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { Bell } from "lucide-react";
 
 interface Notif {
   id: number; ntype: string; title: string; body: string;
@@ -60,9 +61,9 @@ export function NotificationBell() {
       <button
         onClick={() => setOpen(!open)}
         aria-label={`الإشعارات — ${unread} غير مقروء`}
-        className="relative rounded-md p-2 text-xl transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-brand"
+        className="relative rounded-md p-2 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-brand"
       >
-        🔔
+        <Bell className="size-5" aria-hidden="true" />
         {unread > 0 && (
           <span className="tnum absolute -top-0.5 -start-0.5 flex size-5 items-center justify-center rounded-full bg-danger text-xs font-bold text-white">
             {unread > 9 ? "9+" : unread}

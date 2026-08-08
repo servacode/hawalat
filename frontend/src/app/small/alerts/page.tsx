@@ -2,6 +2,7 @@
 
 /** تنبيهات المكتب الصغير: مشاهدة القادمة من مكتبه الكبير (الجزء 16). */
 
+import { Megaphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardBody, EmptyState, Skeleton } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -32,7 +33,7 @@ export default function SmallAlertsPage() {
         <Card key={a.id}>
           <CardBody className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="font-bold">📢 {a.title}</p>
+              <p className="flex items-center gap-2 font-bold"><Megaphone className="size-4 shrink-0 text-brand" /> {a.title}</p>
               <p className="tnum text-sm text-muted">{formatDateTime(a.at)}</p>
             </div>
             <p className="text-muted">{a.message}</p>

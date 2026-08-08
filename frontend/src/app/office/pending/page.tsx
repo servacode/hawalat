@@ -6,6 +6,7 @@
  * الأجور المستحقة + سعر الصرف (إن اختلفت العملتان — إلزامي) → قبول/رفض.
  */
 
+import { Check, ClipboardCheck, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -116,7 +117,7 @@ export default function PendingPage() {
                   )}
                 </TD>
                 <TD>{t.destination}</TD>
-                <TD><Button size="sm" onClick={() => openProcess(t)}>معالجة</Button></TD>
+                <TD><Button size="sm" onClick={() => openProcess(t)}><ClipboardCheck className="size-4" />معالجة</Button></TD>
               </TR>
             ))}
           </TBody>
@@ -171,12 +172,12 @@ export default function PendingPage() {
             )}
             {error && <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
             <div className="flex justify-end gap-3">
-              <Button variant="danger" disabled={busy} onClick={() => act("reject")}>رفض</Button>
+              <Button variant="danger" disabled={busy} onClick={() => act("reject")}><X className="size-4" />رفض</Button>
               <Button
                 disabled={busy || !form.box || !form.fee_cost || !form.fee_charged || (!!dual && !form.exchange_rate)}
                 onClick={() => act("approve")}
               >
-                {busy ? "جارٍ…" : "قبول الحركة"}
+                {busy ? "جارٍ…" : <><Check className="size-4" />قبول الحركة</>}
               </Button>
             </div>
           </div>

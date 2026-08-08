@@ -5,6 +5,7 @@
  * اختيار النوع + نطاق التاريخ + جدول عام + تنزيل Excel/PDF.
  */
 
+import { Eye, FileSpreadsheet, FileText } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Card, CardBody, EmptyState, Input, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi, authedDownload } from "@/lib/authedApi";
@@ -66,12 +67,12 @@ export function ReportsScreen({ scope }: { scope: "office" | "small" }) {
           </div>
           <Input label="من تاريخ" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           <Input label="إلى تاريخ" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          <Button variant="ghost" onClick={run}>عرض</Button>
+          <Button variant="ghost" onClick={run}><Eye className="size-4" /> عرض</Button>
           <Button variant="accent" disabled={downloading !== null} onClick={() => download("xlsx")}>
-            {downloading === "xlsx" ? "جارٍ…" : "⬇ Excel"}
+            {downloading === "xlsx" ? "جارٍ…" : (<><FileSpreadsheet className="size-4" /> Excel</>)}
           </Button>
           <Button variant="accent" disabled={downloading !== null} onClick={() => download("pdf")}>
-            {downloading === "pdf" ? "جارٍ…" : "⬇ PDF"}
+            {downloading === "pdf" ? "جارٍ…" : (<><FileText className="size-4" /> PDF</>)}
           </Button>
         </CardBody>
       </Card>

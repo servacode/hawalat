@@ -1,9 +1,10 @@
 "use client";
 
-/** هيكل لوحة موحّد (Shell): شريط جانبي RTL + ترويسة — يُستخدم لكل الأدوار. */
+/** هيكل لوحة موحّد (Shell): شريط جانبي RTL بأيقونات Lucide + ترويسة — لكل الأدوار. */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { LogoutButton } from "@/components/auth/RoleGuard";
 import { NotificationBell } from "./NotificationBell";
@@ -12,7 +13,7 @@ import { InstallButton } from "@/components/pwa/PwaSetup";
 export interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
 }
 
 export function Shell({
@@ -43,6 +44,7 @@ export function Shell({
           {nav.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
@@ -54,7 +56,7 @@ export function Shell({
                     : "text-muted hover:bg-surface-2 hover:text-ink",
                 )}
               >
-                <span aria-hidden="true">{item.icon}</span>
+                <Icon className="size-5 shrink-0" aria-hidden="true" />
                 {item.label}
               </Link>
             );

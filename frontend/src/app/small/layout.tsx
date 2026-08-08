@@ -1,15 +1,16 @@
 "use client";
 
+import { ChartColumn, History, LayoutDashboard, Megaphone, Send, Wallet } from "lucide-react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { Shell, type NavItem } from "@/components/layout/Shell";
 
 const NAV: NavItem[] = [
-  { href: "/small", label: "الرئيسية", icon: "📊" },
-  { href: "/small/send", label: "إرسال حركة", icon: "📤" },
-  { href: "/small/transactions", label: "سجل الحركات", icon: "📚" },
-  { href: "/small/boxes", label: "الصناديق", icon: "🏦" },
-  { href: "/small/reports", label: "التقارير", icon: "📈" },
-  { href: "/small/alerts", label: "التنبيهات", icon: "📢" },
+  { href: "/small", label: "الرئيسية", icon: LayoutDashboard },
+  { href: "/small/send", label: "إرسال حركة", icon: Send },
+  { href: "/small/transactions", label: "سجل الحركات", icon: History },
+  { href: "/small/boxes", label: "الصناديق", icon: Wallet },
+  { href: "/small/reports", label: "التقارير", icon: ChartColumn },
+  { href: "/small/alerts", label: "التنبيهات", icon: Megaphone },
 ];
 
 export default function SmallLayout({ children }: { children: React.ReactNode }) {

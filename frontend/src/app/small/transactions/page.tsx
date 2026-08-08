@@ -2,6 +2,7 @@
 
 /** سجل حركات المكتب الصغير مع فلتر (الجزء 3-ج). */
 
+import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, EmptyState, Input, Select, Skeleton, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -51,7 +52,7 @@ export default function MyTransactionsPage() {
               { value: "reversed", label: "معكوسة" },
             ]} />
         </div>
-        <Button variant="ghost" onClick={load}>تحديث</Button>
+        <Button variant="ghost" onClick={load}><RefreshCw className="size-4" />تحديث</Button>
       </div>
 
       {!txns ? (

@@ -6,6 +6,7 @@
  * زر واتساب يفتح مجموعة المكتب برابطها مع النص الجاهز.
  */
 
+import { Bot, CircleCheck, MessageCircle, Plus, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button, Card, CardBody, CardHeader, CardTitle, Input, Select } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -86,7 +87,7 @@ export default function SendPage() {
   if (created) {
     return (
       <Card className="mx-auto max-w-xl">
-        <CardHeader><CardTitle>✅ أُرسلت الحركة — قيد الانتظار</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><CircleCheck className="size-5 text-success" /> أُرسلت الحركة — قيد الانتظار</CardTitle></CardHeader>
         <CardBody className="flex flex-col gap-4">
           <p>
             الرقم المرجعي:{" "}
@@ -98,7 +99,7 @@ export default function SendPage() {
           {waState && (
             <p className="text-sm text-success">
               {waState === "bot"
-                ? "🤖 أُرسلت تلقائياً لمجموعتك عبر البوت."
+                ? "أُرسلت تلقائياً لمجموعتك عبر البوت."
                 : waState === "copied"
                   ? "نُسخ النص — الصقه في مجموعتك التي فُتحت الآن."
                   : "فُتحت نافذة الواتساب بالنص الجاهز."}
@@ -106,10 +107,10 @@ export default function SendPage() {
           )}
           <div className="flex flex-wrap gap-3">
             <Button variant="accent" onClick={whatsapp}>
-              {botReady ? "🤖 إرسال عبر البوت" : "📲 إرسال للواتساب"}
+              {botReady ? <><Bot className="size-4" />إرسال عبر البوت</> : <><MessageCircle className="size-4" />إرسال للواتساب</>}
             </Button>
             <Button variant="ghost" onClick={() => { setCreated(null); setWaState(null); }}>
-              حركة جديدة
+              <Plus className="size-4" />حركة جديدة
             </Button>
           </div>
         </CardBody>
@@ -144,7 +145,7 @@ export default function SendPage() {
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="sm:col-span-2">
             <Button type="submit" size="lg" disabled={busy} className="w-full">
-              {busy ? "جارٍ الإرسال…" : "إرسال الحركة"}
+              {busy ? "جارٍ الإرسال…" : <><Send className="size-4" />إرسال الحركة</>}
             </Button>
           </div>
         </form>

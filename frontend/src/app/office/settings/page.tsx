@@ -6,6 +6,7 @@
  * + سجل رسائل البوت (تشخيص).
  */
 
+import { Lightbulb, Save } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Input, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -85,12 +86,12 @@ export default function OfficeSettingsPage() {
               )}
             </p>
             <Button onClick={() => save({ gateway_url: gatewayUrl, ...(token ? { gateway_token: token } : {}) })}>
-              حفظ الإعدادات
+              <Save className="size-4" /> حفظ الإعدادات
             </Button>
           </div>
           {saved && <p className="text-sm text-success">تم الحفظ ✓</p>}
           <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
-            💡 لكل مكتب صغير حقل «معرّف مجموعة البوت» في قسم الحسابات — مطلوب للإرسال التلقائي لمجموعته.
+            <Lightbulb className="mb-0.5 inline size-4" /> لكل مكتب صغير حقل «معرّف مجموعة البوت» في قسم الحسابات — مطلوب للإرسال التلقائي لمجموعته.
           </p>
         </CardBody>
       </Card>

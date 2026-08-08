@@ -2,6 +2,7 @@
 
 /** رئيسية المكتب الصغير: صناديقه لكل عملة (له/عليه/الصافي) + آخر الحركات. */
 
+import { Send } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
@@ -80,12 +81,12 @@ export default function SmallHome() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold uppercase tracking-widest text-brand-700">آخر الحركات</h2>
-          <Link href="/small/send"><Button size="sm">+ إرسال حركة</Button></Link>
+          <Link href="/small/send"><Button size="sm"><Send className="size-4" />إرسال حركة</Button></Link>
         </div>
         {!txns ? (
           <Skeleton className="h-40" />
         ) : txns.length === 0 ? (
-          <EmptyState title="لا حركات بعد" description="ابدأ بإرسال أول حوالة." action={<Link href="/small/send"><Button>إرسال حركة</Button></Link>} />
+          <EmptyState title="لا حركات بعد" description="ابدأ بإرسال أول حوالة." action={<Link href="/small/send"><Button><Send className="size-4" />إرسال حركة</Button></Link>} />
         ) : (
           <Table>
             <THead><TR><TH>المرجع</TH><TH>المستفيد</TH><TH>المبلغ</TH><TH>الوجهة</TH><TH>الحالة</TH></TR></THead>

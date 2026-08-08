@@ -2,6 +2,7 @@
 
 /** الباقات: تعريف حدود (مكاتب + حركات) وسعر ومدة. */
 
+import { PackagePlus, Save } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   Button,
@@ -70,13 +71,13 @@ export default function PackagesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-muted">حدود الباقة تسري على ما يُنشأ بعد التفعيل فقط (قاعدة الترحيل).</p>
-        <Button onClick={() => setOpen(true)}>+ باقة جديدة</Button>
+        <Button onClick={() => setOpen(true)}><PackagePlus className="size-4" /> باقة جديدة</Button>
       </div>
 
       {!packages ? (
         <Skeleton className="h-48" />
       ) : packages.length === 0 ? (
-        <EmptyState title="لا باقات بعد" action={<Button onClick={() => setOpen(true)}>إنشاء باقة</Button>} />
+        <EmptyState title="لا باقات بعد" action={<Button onClick={() => setOpen(true)}><PackagePlus className="size-4" /> إنشاء باقة</Button>} />
       ) : (
         <Table>
           <THead>
@@ -116,7 +117,7 @@ export default function PackagesPage() {
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="flex justify-end gap-3 sm:col-span-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>إلغاء</Button>
-            <Button type="submit">حفظ الباقة</Button>
+            <Button type="submit"><Save className="size-4" /> حفظ الباقة</Button>
           </div>
         </form>
       </Modal>

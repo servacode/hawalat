@@ -2,6 +2,7 @@
 
 /** حوالات — بوابة الدخول الموحّدة (المشهد 6): دور واحد لكل مستخدم يحدد وجهته. */
 
+import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, Card, CardBody, Input, Modal } from "@/components/ui";
@@ -95,7 +96,7 @@ export default function LoginPage() {
               )}
 
               <Button type="submit" size="lg" disabled={loading}>
-                {loading ? "جارٍ الدخول…" : "دخول"}
+                {loading ? "جارٍ الدخول…" : (<><LogIn className="size-4" /> دخول</>)}
               </Button>
             </form>
           </CardBody>

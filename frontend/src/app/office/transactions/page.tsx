@@ -2,6 +2,7 @@
 
 /** سجل حركات المكتب الكبير (الجزء 11): كل المنفَّذ + فلتر احترافي + مدفوعة/تسليم/عكس. */
 
+import { Check, HandCoins, PackageCheck, Pencil, RefreshCw, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -91,7 +92,7 @@ export default function OfficeHistoryPage() {
               { value: "reversed", label: "معكوسة" },
             ]} />
         </div>
-        <Button variant="ghost" onClick={load}>تحديث</Button>
+        <Button variant="ghost" onClick={load}><RefreshCw className="size-4" />تحديث</Button>
       </div>
 
       {!txns ? (
@@ -131,21 +132,21 @@ export default function OfficeHistoryPage() {
                     <div className="flex flex-wrap gap-1.5">
                       {t.payment_status !== "paid" && (
                         <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "pay")}>
-                          مدفوعة
+                          <HandCoins className="size-4" />مدفوعة
                         </Button>
                       )}
                       {t.delivery_status !== "delivered" && (
                         <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "deliver")}>
-                          تم التسليم
+                          <PackageCheck className="size-4" />تم التسليم
                         </Button>
                       )}
                       {t.payment_status !== "paid" && (
                         <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
-                          تعديل
+                          <Pencil className="size-4" />تعديل
                         </Button>
                       )}
                       <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
-                        عكس
+                        <Undo2 className="size-4" />عكس
                       </Button>
                     </div>
                   )}
@@ -175,7 +176,7 @@ export default function OfficeHistoryPage() {
           {editError && <p className="text-sm text-danger">{editError}</p>}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setEditFor(null)}>إلغاء</Button>
-            <Button type="submit">تطبيق التعديل</Button>
+            <Button type="submit"><Check className="size-4" />تطبيق التعديل</Button>
           </div>
         </form>
       </Modal>

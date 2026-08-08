@@ -2,6 +2,7 @@
 
 /** إدارة المكاتب الكبيرة: فتح/تعديل/حظر/تفعيل/استعادة كلمة مرور — بلا أموال. */
 
+import { Ban, Building2, CircleCheck, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   Badge,
@@ -69,7 +70,7 @@ export default function OfficesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-muted">فتح المكاتب الكبيرة وإدارتها — الأدمن حصراً.</p>
-        <Button onClick={() => setCreateOpen(true)}>+ مكتب كبير جديد</Button>
+        <Button onClick={() => setCreateOpen(true)}><Plus className="size-4" /> مكتب كبير جديد</Button>
       </div>
 
       {!offices ? (
@@ -78,7 +79,7 @@ export default function OfficesPage() {
         <EmptyState
           title="لا مكاتب بعد"
           description="ابدأ بفتح أول مكتب كبير."
-          action={<Button onClick={() => setCreateOpen(true)}>فتح مكتب</Button>}
+          action={<Button onClick={() => setCreateOpen(true)}><Building2 className="size-4" /> فتح مكتب</Button>}
         />
       ) : (
         <Table>
@@ -116,7 +117,7 @@ export default function OfficesPage() {
                     variant={o.is_active ? "danger" : "primary"}
                     onClick={() => toggleBlock(o)}
                   >
-                    {o.is_active ? "حظر" : "تفعيل"}
+                    {o.is_active ? (<><Ban className="size-4" /> حظر</>) : (<><CircleCheck className="size-4" /> تفعيل</>)}
                   </Button>
                 </TD>
               </TR>
@@ -162,7 +163,7 @@ export default function OfficesPage() {
               إلغاء
             </Button>
             <Button type="submit" disabled={busy}>
-              {busy ? "جارٍ الإنشاء…" : "فتح المكتب"}
+              {busy ? "جارٍ الإنشاء…" : (<><Building2 className="size-4" /> فتح المكتب</>)}
             </Button>
           </div>
         </form>

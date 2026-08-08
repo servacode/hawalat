@@ -2,6 +2,7 @@
 
 /** الاشتراكات: طلبات معلّقة → تفعيل يدوي بعد تأكيد الدفع (خارج النظام). */
 
+import { Check, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   Badge,
@@ -73,8 +74,8 @@ function SubsTable({ subs, onAction }: { subs: Sub[]; onAction: () => void }) {
             <TD>
               {s.status === "pending" ? (
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => act(s.id, "activate")}>تفعيل</Button>
-                  <Button size="sm" variant="ghost" onClick={() => act(s.id, "reject")}>رفض</Button>
+                  <Button size="sm" onClick={() => act(s.id, "activate")}><Check className="size-4" /> تفعيل</Button>
+                  <Button size="sm" variant="ghost" onClick={() => act(s.id, "reject")}><X className="size-4" /> رفض</Button>
                 </div>
               ) : (
                 "—"

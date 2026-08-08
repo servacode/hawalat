@@ -2,6 +2,7 @@
 
 /** تنبيهات المكتب الكبير (الجزء 16): بث لكل مكاتبه + الواردة من إدارة المنصة. */
 
+import { Megaphone } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Card, CardBody, EmptyState, Input, Skeleton, Tabs } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -67,7 +68,7 @@ function SendTab() {
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={busy}>
-                {busy ? "جارٍ…" : "📢 بث لكل مكاتبي"}
+                {busy ? "جارٍ…" : (<><Megaphone className="size-4" /> بث لكل مكاتبي</>)}
               </Button>
             </div>
           </form>

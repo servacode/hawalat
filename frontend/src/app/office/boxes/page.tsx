@@ -5,6 +5,7 @@
  * تبويبان — صناديق الوسطاء (إضافة/اعتماد/سحب/كشف) وصندوق المحل (نقد لكل عملة + كشف).
  */
 
+import { ArrowDownToLine, ArrowUpFromLine, PackagePlus, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Card, CardBody, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table, Tabs } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -96,14 +97,14 @@ function IntermediaryBoxes() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
-        <Button onClick={() => setAddOpen(true)}>+ صندوق وسيط</Button>
+        <Button onClick={() => setAddOpen(true)}><PackagePlus className="size-4" />صندوق وسيط</Button>
       </div>
       {!boxes ? (
         <Skeleton className="h-48" />
       ) : boxes.length === 0 ? (
         <EmptyState title="لا صناديق وسطاء بعد"
           description="أضف صندوقاً (اسم + رقم + عملات) لتمرير الحركات من خلاله."
-          action={<Button onClick={() => setAddOpen(true)}>إضافة صندوق</Button>} />
+          action={<Button onClick={() => setAddOpen(true)}><PackagePlus className="size-4" />إضافة صندوق</Button>} />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {boxes.map((b) => (
@@ -112,8 +113,8 @@ function IntermediaryBoxes() {
                 <div className="flex items-center justify-between">
                   <p className="font-bold">{b.name} <span className="tnum text-sm text-muted">#{b.number}</span></p>
                   <div className="flex gap-1.5">
-                    <Button size="sm" variant="ghost" onClick={() => setSettleFor({ box: b, kind: "deposit" })}>اعتماد</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setSettleFor({ box: b, kind: "withdraw" })}>سحب</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSettleFor({ box: b, kind: "deposit" })}><ArrowDownToLine className="size-4" />اعتماد</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSettleFor({ box: b, kind: "withdraw" })}><ArrowUpFromLine className="size-4" />سحب</Button>
                   </div>
                 </div>
                 {b.balances.length === 0 ? (
@@ -167,7 +168,7 @@ function IntermediaryBoxes() {
           {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={addForm.currencies.length === 0}>إضافة</Button>
+            <Button type="submit" disabled={addForm.currencies.length === 0}><PackagePlus className="size-4" />إضافة</Button>
           </div>
         </form>
       </Modal>
@@ -194,7 +195,7 @@ function IntermediaryBoxes() {
             {error && <p className="text-sm text-danger">{error}</p>}
             <div className="flex justify-end gap-3">
               <Button type="button" variant="ghost" onClick={() => setSettleFor(null)}>إلغاء</Button>
-              <Button type="submit">{settleFor.kind === "deposit" ? "تنفيذ الاعتماد" : "تنفيذ السحب"}</Button>
+              <Button type="submit">{settleFor.kind === "deposit" ? <><ArrowDownToLine className="size-4" />تنفيذ الاعتماد</> : <><ArrowUpFromLine className="size-4" />تنفيذ السحب</>}</Button>
             </div>
           </form>
         )}
@@ -279,7 +280,7 @@ function CurrenciesManager() {
           <Input label="الاسم" placeholder="دولار أمريكي" value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         </div>
-        <Button type="submit">إضافة</Button>
+        <Button type="submit"><Plus className="size-4" />إضافة</Button>
       </form>
       <div className="flex flex-wrap gap-2">
         {currencies.map((c) => (

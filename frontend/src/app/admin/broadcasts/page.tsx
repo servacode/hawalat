@@ -2,6 +2,7 @@
 
 /** تنبيهات الأدمن → المكاتب الكبيرة فقط (الجزء 16). */
 
+import { Megaphone } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Card, CardBody, EmptyState, Input, Skeleton } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -62,7 +63,7 @@ export default function BroadcastsPage() {
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={busy}>
-                {busy ? "جارٍ الإرسال…" : "بث للمكاتب الكبيرة"}
+                {busy ? "جارٍ الإرسال…" : (<><Megaphone className="size-4" /> بث للمكاتب الكبيرة</>)}
               </Button>
             </div>
           </form>

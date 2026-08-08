@@ -2,6 +2,7 @@
 
 /** تسجيل الـ Service Worker + التقاط طلب التثبيت (PWA — المرحلة 10). */
 
+import { MonitorDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -49,10 +50,11 @@ export function InstallButton({ className }: { className?: string }) {
       }}
       className={
         className ??
-        "rounded-md border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:border-brand hover:text-brand-700"
+        "flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:border-brand hover:text-brand-700"
       }
     >
-      📲 تثبيت التطبيق
+      <MonitorDown className="size-4" aria-hidden="true" />
+      تثبيت التطبيق
     </button>
   );
 }
