@@ -60,10 +60,13 @@ export interface ReconciliationRow {
   balance: string;
 }
 
-/** علم كل عملة في رسالة المطابقة — والافتراضي 💱 لغير المعروفة. */
-const CURRENCY_FLAGS: Record<string, string> = {
-  USD: "🇺🇸", EUR: "🇪🇺", TRY: "🇹🇷", SYP: "🇸🇾", SAR: "🇸🇦", AED: "🇦🇪",
-  KWD: "🇰🇼", QAR: "🇶🇦", JOD: "🇯🇴", EGP: "🇪🇬", GBP: "🇬🇧", IQD: "🇮🇶", LBP: "🇱🇧",
+/**
+ * إشارة كل عملة في رسالة المطابقة — رموز أساسية مضمونة العرض على كل
+ * الأجهزة والتطبيقات (ملاحظة 43: الأعلام والإيموجي الحديثة تظهر � عند البعض).
+ */
+const CURRENCY_SIGNS: Record<string, string> = {
+  USD: "$", EUR: "€", TRY: "₺", SYP: "ل.س", SAR: "﷼", AED: "د.إ",
+  KWD: "د.ك", QAR: "ر.ق", JOD: "د.أ", EGP: "ج.م", GBP: "£", IQD: "ع.د", LBP: "ل.ل",
 };
 
 /** نص المطابقة (ملاحظة 41): الشكل الذي حدّده صاحب المشروع حرفياً. */
@@ -74,18 +77,18 @@ export function buildReconciliationMessage(rows: ReconciliationRow[]): string {
     .filter((r) => Number(r.balance) !== 0)
     .map((r) => {
       const bal = Number(r.balance);
-      const flag = CURRENCY_FLAGS[r.currency] ?? "💱";
+      const sign = CURRENCY_SIGNS[r.currency] ?? "¤";
       const label = bal > 0 ? `${formatMoney(bal)} لنا` : `${formatMoney(-bal)} لكم`;
-      return `${flag} ${r.currency}: ${label}`;
+      return `${sign} ${r.currency}: ${label}`;
     });
   return [
-    "🌟مطاااااااابقة🌟",
+    "⭐مطاااااااابقة⭐",
     `    حتى تاريخ هذه اللحظة ${formatDateTime(new Date().toISOString())}`,
     sep,
     ...(body.length ? body : ["لا أرصدة بعد"]),
     sep,
     "     يرجى تأكيد المطابقة",
     "",
-    "⌛️⌛️💎💎💎💎⏳⏳",
+    "⌛⌛✨✨✨✨⏳⏳",
   ].join("\n");
 }
