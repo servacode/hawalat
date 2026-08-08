@@ -48,7 +48,22 @@ class LogoutView(APIView):
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    MAX_AVATAR_CHARS = 400_000  # ~300KB مشفّرة — تكفي لصورة 256px مضغوطة
+
     def get(self, request):
+        return Response(MeSerializer(request.user).data)
+
+    def patch(self, request):
+        """تحديث الملف الشخصي — صورة البروفايل فقط (data URL أو "" للإزالة)."""
+        if "avatar" not in request.data:
+            return Response({"detail": "لا شيء لتحديثه."}, status=400)
+        avatar = request.data.get("avatar") or ""
+        if avatar and not avatar.startswith("data:image/"):
+            return Response({"avatar": "صيغة الصورة غير صالحة."}, status=400)
+        if len(avatar) > self.MAX_AVATAR_CHARS:
+            return Response({"avatar": "الصورة كبيرة جداً."}, status=400)
+        request.user.avatar = avatar
+        request.user.save(update_fields=["avatar"])
         return Response(MeSerializer(request.user).data)
 
 

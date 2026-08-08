@@ -61,6 +61,7 @@ class MeSerializer(serializers.ModelSerializer):
             "whatsapp_group_link",
             "tenant_code",
             "tenant_name",
+            "avatar",
         ]
         read_only_fields = fields
 

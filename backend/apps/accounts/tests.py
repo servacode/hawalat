@@ -213,6 +213,38 @@ class PasswordTests(APITestCase):
         self.assertEqual(res.status_code, 403)
 
 
+class AvatarTests(APITestCase):
+    """صورة البروفايل: تحديث عبر PATCH /me/ وتظهر في بيانات الجلسة."""
+
+    def setUp(self):
+        self.user = create_big_office(
+            name="مكتب دمشق", username="damascus", password="secret12345"
+        )
+        res = self.client.post(
+            reverse("auth-login"),
+            {"username": "damascus", "password": "secret12345"},
+            format="json",
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {res.data['access']}")
+
+    def test_patch_avatar_and_read_back(self):
+        data_url = "data:image/jpeg;base64,AAAA"
+        res = self.client.patch(reverse("auth-me"), {"avatar": data_url}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["avatar"], data_url)
+        self.assertEqual(self.client.get(reverse("auth-me")).data["avatar"], data_url)
+        # الإزالة
+        res = self.client.patch(reverse("auth-me"), {"avatar": ""}, format="json")
+        self.assertEqual(res.data["avatar"], "")
+
+    def test_invalid_or_huge_avatar_rejected(self):
+        res = self.client.patch(reverse("auth-me"), {"avatar": "http://x/img.png"}, format="json")
+        self.assertEqual(res.status_code, 400)
+        huge = "data:image/png;base64," + "A" * 500_000
+        res = self.client.patch(reverse("auth-me"), {"avatar": huge}, format="json")
+        self.assertEqual(res.status_code, 400)
+
+
 class RegisterTests(APITestCase):
     payload = {
         "office_name": "مكتب جديد",

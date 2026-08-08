@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, History, LayoutDashboard, Megaphone, Send, Wallet } from "lucide-react";
+import { ChartColumn, History, LayoutDashboard, Megaphone, Send, Settings, Wallet } from "lucide-react";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { Shell, type NavItem } from "@/components/layout/Shell";
 
@@ -11,6 +11,7 @@ const NAV: NavItem[] = [
   { href: "/small/boxes", label: "الصناديق", icon: Wallet },
   { href: "/small/reports", label: "التقارير", icon: ChartColumn },
   { href: "/small/alerts", label: "التنبيهات", icon: Megaphone },
+  { href: "/small/settings", label: "الإعدادات", icon: Settings },
 ];
 
 export default function SmallLayout({ children }: { children: React.ReactNode }) {

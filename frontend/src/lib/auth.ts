@@ -16,6 +16,7 @@ export interface SessionUser {
   tenant_name: string | null;
   whatsapp_group_link?: string;
   whatsapp_group_name?: string;
+  avatar?: string;
 }
 
 export interface Session {
@@ -44,6 +45,15 @@ export function getSession(): Session | null {
   } catch {
     return null;
   }
+}
+
+/** يحدّث بيانات مستخدم الجلسة المحفوظة (مثل الصورة) ويُعلم الواجهة. */
+export function updateSessionUser(patch: Partial<SessionUser>): void {
+  const session = getSession();
+  if (!session) return;
+  const next: Session = { ...session, user: { ...session.user, ...patch } };
+  saveSession(next, sessionRemembered());
+  window.dispatchEvent(new CustomEvent("hawalat:session"));
 }
 
 export function clearSession(): void {

@@ -27,8 +27,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${tajawal.variable} antialiased`}>
+        {/* تطبيق ثيم المستخدم المحفوظ قبل الرسم — يمنع وميض تبديل الألوان */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("hawalat.theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}`,
+          }}
+        />
         <PwaSetup />
         {children}
       </body>

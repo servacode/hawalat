@@ -4,11 +4,44 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { LogoutButton } from "@/components/auth/RoleGuard";
+import { getSession, type SessionUser } from "@/lib/auth";
 import { NotificationBell } from "./NotificationBell";
+import { ThemeToggle } from "./ThemeToggle";
 import { InstallButton } from "@/components/pwa/PwaSetup";
+
+/** صورة/حرف المستخدم في التوب بار — تتحدث فور رفع صورة جديدة (hawalat:session). */
+function UserBadge() {
+  const [user, setUser] = useState<SessionUser | null>(null);
+  useEffect(() => {
+    const read = () => setUser(getSession()?.user ?? null);
+    read();
+    window.addEventListener("hawalat:session", read);
+    return () => window.removeEventListener("hawalat:session", read);
+  }, []);
+  if (!user) return null;
+  const name = user.first_name || user.username;
+  return (
+    <div className="flex items-center gap-2.5">
+      {user.avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element -- data URL محلي
+        <img
+          src={user.avatar}
+          alt={name}
+          className="size-9 rounded-full border border-border object-cover"
+        />
+      ) : (
+        <div className="flex size-9 items-center justify-center rounded-full bg-brand/15 font-bold text-brand-700">
+          {name.trim().charAt(0)}
+        </div>
+      )}
+      <span className="hidden max-w-36 truncate text-sm font-medium sm:block">{name}</span>
+    </div>
+  );
+}
 
 export interface NavItem {
   href: string;
@@ -28,6 +61,10 @@ export function Shell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  // النشط = أطول مسار مطابق فقط (وإلا تضيء «الرئيسية» مع كل قسم فرعي)
+  const activeHref = nav
+    .filter((i) => pathname === i.href || pathname.startsWith(i.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
   return (
     <div className="flex min-h-screen gap-4 bg-bg p-3 md:p-4">
       <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-64 shrink-0 flex-col overflow-y-auto rounded-2xl border border-border bg-surface shadow-sm md:flex">
@@ -42,8 +79,7 @@ export function Shell({
         </div>
         <nav className="flex flex-1 flex-col gap-1.5 px-3 pt-2">
           {nav.map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+            const active = item.href === activeHref;
             const Icon = item.icon;
             return (
               <Link
@@ -62,7 +98,7 @@ export function Shell({
             );
           })}
         </nav>
-        <div className="m-3 flex flex-col gap-2 rounded-xl bg-surface-2/60 p-3">
+        <div className="flex flex-col gap-2 p-3">
           <InstallButton />
           <LogoutButton />
         </div>
@@ -72,9 +108,11 @@ export function Shell({
         <header className="sticky top-4 z-10 flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface/95 px-5 py-3.5 shadow-sm backdrop-blur md:px-6">
           <h1 className="text-xl font-bold">{title}</h1>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <NotificationBell />
+            <UserBadge />
             <div className="md:hidden">
-              <LogoutButton />
+              <LogoutButton compact />
             </div>
           </div>
         </header>

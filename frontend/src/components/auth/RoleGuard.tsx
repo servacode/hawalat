@@ -39,7 +39,7 @@ export function RoleGuard({
   return <>{children(session)}</>;
 }
 
-export function LogoutButton() {
+export function LogoutButton({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   return (
     <button
@@ -60,10 +60,15 @@ export function LogoutButton() {
         clearSession();
         router.replace("/login");
       }}
-      className="flex items-center gap-2 text-sm text-muted transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-brand"
+      className={
+        compact
+          ? "flex size-9 items-center justify-center rounded-full text-danger transition-colors hover:bg-danger hover:text-white focus-visible:outline-2 focus-visible:outline-danger"
+          : "flex items-center justify-center gap-2 rounded-lg bg-danger px-3 py-2 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-danger"
+      }
+      aria-label="تسجيل الخروج"
     >
       <LogOut className="size-4" aria-hidden="true" />
-      تسجيل الخروج
+      {!compact && "تسجيل الخروج"}
     </button>
   );
 }
