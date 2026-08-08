@@ -108,11 +108,41 @@ export default function OfficeHistoryPage() {
     }
   }
 
-  function rowActions(t: Txn) {
+  function rowActions(t: Txn, compact = false) {
     if (t.approval_status !== "accepted") return null;
     if (t.delivery_status === "delivered") {
       // التسليم نهائي مطلق — الزبون استلم وذهب: لا أي إجراء
-      return <span className="text-sm text-muted">سُلّمت — نهائي</span>;
+      return <span className="whitespace-nowrap text-sm text-muted">سُلّمت — نهائي</span>;
+    }
+    if (compact) {
+      // أزرار أيقونية بسطر واحد للجدول (ملاحظة 30) — الاسم tooltip
+      const iconBtn =
+        "flex size-8 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-brand hover:text-brand-700 disabled:opacity-40";
+      return (
+        <div className="flex flex-nowrap items-center gap-1.5">
+          {t.payment_status !== "paid" && (
+            <button type="button" title="مدفوعة" aria-label="مدفوعة" className={iconBtn}
+              disabled={busy === t.id} onClick={() => act(t, "pay")}>
+              <HandCoins className="size-4" />
+            </button>
+          )}
+          <button type="button" title="تم التسليم" aria-label="تم التسليم" className={iconBtn}
+            disabled={busy === t.id} onClick={() => act(t, "deliver")}>
+            <PackageCheck className="size-4" />
+          </button>
+          {t.payment_status !== "paid" && (
+            <button type="button" title="تعديل" aria-label="تعديل" className={iconBtn}
+              disabled={busy === t.id} onClick={() => openEdit(t)}>
+              <Pencil className="size-4" />
+            </button>
+          )}
+          <button type="button" title="عكس" aria-label="عكس"
+            className="flex size-8 items-center justify-center rounded-lg border border-danger/40 text-danger transition-colors hover:bg-danger hover:text-white disabled:opacity-40"
+            disabled={busy === t.id} onClick={() => act(t, "reverse")}>
+            <Undo2 className="size-4" />
+          </button>
+        </div>
+      );
     }
     return (
       <div className="flex flex-wrap gap-1.5">
@@ -194,33 +224,32 @@ export default function OfficeHistoryPage() {
         <Table>
           <THead>
             <TR>
-              <TH>المرجع</TH><TH>التاريخ</TH><TH>من مكتب</TH><TH>المستفيد</TH>
-              <TH>المبلغ</TH><TH>الأجور (رأس مال/مستحقة)</TH><TH>الصندوق</TH>
-              <TH>القبول</TH><TH>الدفع</TH><TH>التسليم</TH><TH>إجراءات</TH>
+              <TH>المرجع</TH><TH>من مكتب</TH><TH>المستفيد</TH><TH>المبلغ</TH>
+              <TH>الأجور</TH><TH>الصندوق</TH><TH>الحالة</TH><TH>إجراءات</TH>
             </TR>
           </THead>
           <TBody>
             {pager.slice.map((t) => (
               <TR key={t.id}>
-                <TD className="tnum text-sm text-muted">{t.reference_code}</TD>
-                <TD className="tnum text-sm">{formatDate(t.created_at)}</TD>
-                <TD>{t.created_by_name}</TD>
+                <TD>
+                  <span dir="ltr" className="tnum block text-sm">{t.reference_code}</span>
+                  <span className="tnum block text-xs text-muted">{formatDate(t.created_at)}</span>
+                </TD>
+                <TD className="whitespace-nowrap">{t.created_by_name}</TD>
                 <TD>{t.beneficiary}</TD>
-                <TD className="tnum font-bold">{formatMoney(t.amount, t.currency_received)}</TD>
-                <TD className="tnum">
+                <TD className="tnum whitespace-nowrap font-bold">{formatMoney(t.amount, t.currency_received)}</TD>
+                <TD className="tnum whitespace-nowrap">
                   {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)} ${t.currency_received}` : "—"}
                 </TD>
-                <TD>{t.box_name ?? "—"}</TD>
-                <TD><Badge status={approvalBadge[t.approval_status]} /></TD>
+                <TD className="whitespace-nowrap">{t.box_name ?? "—"}</TD>
                 <TD>
-                  {t.payment_status === "paid" ? <Badge status="paid" /> : <span className="text-muted">غير مدفوعة</span>}
+                  <span className="flex flex-wrap items-center gap-1">
+                    <Badge status={approvalBadge[t.approval_status]} />
+                    {t.payment_status === "paid" && <Badge status="paid" />}
+                    {t.delivery_status === "delivered" && <Badge status="delivered" />}
+                  </span>
                 </TD>
-                <TD>
-                  {t.delivery_status === "delivered" ? <Badge status="delivered" /> : <span className="text-muted">—</span>}
-                </TD>
-                <TD>
-                  {rowActions(t)}
-                </TD>
+                <TD>{rowActions(t, true)}</TD>
               </TR>
             ))}
           </TBody>
