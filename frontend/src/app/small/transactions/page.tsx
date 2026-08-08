@@ -91,15 +91,17 @@ export default function MyTransactionsPage() {
           {shown.map((t) => (
             <Card key={t.id}>
               <CardBody className="flex flex-col gap-2.5 py-3.5">
-                {/* الحالات صفاً أفقياً بالأعلى (ملاحظة 21) */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge status={approvalBadge[t.approval_status]} />
-                  {t.payment_status === "paid" && <Badge status="paid" />}
-                  {t.delivery_status === "delivered" && <Badge status="delivered" />}
+                {/* الحالات يميناً والمرجع أعلى اليسار (ملاحظة 23) */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge status={approvalBadge[t.approval_status]} />
+                    {t.payment_status === "paid" && <Badge status="paid" />}
+                    {t.delivery_status === "delivered" && <Badge status="delivered" />}
+                  </div>
+                  <span dir="ltr" className="tnum ms-auto text-sm text-muted">{t.reference_code}</span>
                 </div>
-                <p className="text-start"><span dir="ltr" className="tnum text-sm text-muted">{t.reference_code}</span></p>
                 <p className="tnum text-xl font-bold">{formatMoney(t.amount, t.currency_received)}</p>
-                <div className="flex flex-col gap-1.5">
+                <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
                   <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />
                   {t.sender && <TxnField icon={UserRound} label="المرسِل" value={t.sender} />}
                   <TxnField icon={MapPin} label="الوجهة" value={t.destination} />

@@ -11,10 +11,12 @@ export function TxnField({
   value: React.ReactNode;
 }) {
   return (
-    <p className="flex items-center gap-2 text-sm">
-      <Icon className="size-4 shrink-0 text-brand" aria-hidden="true" />
-      <span className="shrink-0 text-muted">{label}:</span>
-      <span className="min-w-0 truncate font-medium">{value}</span>
-    </p>
+    <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+      <span className="flex shrink-0 items-center gap-2 text-muted">
+        <Icon className="size-4 shrink-0 text-brand" aria-hidden="true" />
+        {label}
+      </span>
+      <span className="min-w-0 truncate text-end font-medium">{value}</span>
+    </div>
   );
 }
