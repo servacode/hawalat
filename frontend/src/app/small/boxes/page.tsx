@@ -206,9 +206,9 @@ export default function SmallBoxesPage() {
                                 </div>
                                 <p className="tnum text-lg font-bold">
                                   {Number(l.credit) ? (
-                                    <span className="text-pos">لنا +{formatMoney(l.credit)}</span>
+                                    <span className="text-pos">لنا {formatMoney(l.credit)}</span>
                                   ) : (
-                                    <span className="text-neg">لكم −{formatMoney(l.debit)}</span>
+                                    <span className="text-neg">لكم {formatMoney(l.debit)}</span>
                                   )}
                                 </p>
                                 <p dir="auto" className="tnum break-words text-sm text-muted">{l.note || l.memo}</p>

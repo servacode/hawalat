@@ -267,9 +267,9 @@ export default function BoxDetailsPage() {
                 </div>
                 <p className="tnum text-lg font-bold">
                   {Number(r.in) > 0 ? (
-                    <span className="text-pos">+{formatMoney(r.in)}</span>
+                    <span className="text-pos">داخل {formatMoney(r.in)}</span>
                   ) : (
-                    <span className="text-neg">−{formatMoney(r.out)}</span>
+                    <span className="text-neg">خارج {formatMoney(r.out)}</span>
                   )}
                 </p>
                 {r.member && <p className="text-sm"><span className="text-muted">المكتب:</span> {r.member}</p>}

@@ -3,15 +3,17 @@
  * كل عرض لمبلغ/تاريخ في النظام يمرّ من هنا حصراً — لا تنسيق يدوي في الصفحات.
  */
 
-/** تنسيق مبلغ مالي: فواصل آلاف + كسور فقط عند الحاجة (بلا أصفار زائدة) + إشارة واضحة */
+/**
+ * تنسيق مبلغ مالي: فواصل آلاف + كسور فقط عند الحاجة — **بلا إشارة ±** (ملاحظة 29):
+ * المنطق المحاسبي تحمله الألوان والتسميات (لنا/لكم، لك/عليك) لا الإشارات.
+ */
 export function formatMoney(value: number | string, currency?: string): string {
   const n = typeof value === "string" ? Number(value) : value;
   const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(Math.abs(n));
-  const sign = n < 0 ? "−" : "";
-  return currency ? `${sign}${formatted} ${currency}` : `${sign}${formatted}`;
+  return currency ? `${formatted} ${currency}` : formatted;
 }
 
 /** دلالة الرصيد وفق اصطلاح الدورة: موجب = لنا، سالب = علينا */
