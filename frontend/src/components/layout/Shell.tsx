@@ -134,18 +134,47 @@ export function Shell({
             <ThemeToggle />
             <NotificationBell />
             <UserBadge />
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              aria-label="فتح القائمة"
-              className="flex size-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-ink md:hidden"
-            >
-              <Menu className="size-5" />
-            </button>
+
           </div>
         </header>
-        <main className="flex-1 px-0.5 pb-2">{children}</main>
+        <main className="flex-1 px-0.5 pb-24 md:pb-2">{children}</main>
       </div>
+
+      {/* شريط تنقّل سفلي كتطبيق أندرويد نظامي (ملاحظة 28) */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] shadow-lg md:hidden"
+        aria-label="التنقّل السفلي"
+      >
+        {nav.slice(0, 4).map((item) => {
+          const active = item.href === activeHref;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2 text-[11px] leading-none transition-colors",
+                active ? "font-semibold text-brand-700" : "text-muted",
+              )}
+            >
+              <span className={cn("flex h-7 w-12 items-center justify-center rounded-full", active && "bg-brand/12")}>
+                <Icon className="size-5" />
+              </span>
+              <span className="max-w-full truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          className="flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-2 text-[11px] leading-none text-muted"
+        >
+          <span className="flex h-7 w-12 items-center justify-center rounded-full">
+            <Menu className="size-5" />
+          </span>
+          المزيد
+        </button>
+      </nav>
 
       {/* قائمة الجوال المنسدلة (ملاحظة 26) */}
       {menuOpen && (
