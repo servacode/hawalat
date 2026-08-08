@@ -147,7 +147,6 @@ export default function OfficesPage() {
             label="البريد الإلكتروني"
             type="email"
             dir="ltr"
-            hint="سيُعتمد عليه لاستعادة كلمة المرور"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />

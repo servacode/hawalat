@@ -20,7 +20,6 @@ export default function SmallLayout({ children }: { children: React.ReactNode })
       {(session) => (
         <Shell
           title={session.user.first_name || session.user.username}
-          subtitle={session.user.office_code}
           nav={NAV}
         >
           {children}

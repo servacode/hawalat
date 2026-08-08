@@ -6,6 +6,7 @@ import { LogIn, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, Card, CardBody, Input, Modal, PasswordInput } from "@/components/ui";
+import { PlatformLogo } from "@/components/layout/PlatformLogo";
 import { api, ApiError } from "@/lib/api";
 import { roleHome, saveSession, type Session } from "@/lib/auth";
 
@@ -44,9 +45,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-bg p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-brand text-2xl font-bold text-white shadow-md">
-            ح
-          </div>
+          <PlatformLogo className="size-14 rounded-2xl text-2xl shadow-md" />
           <h1 className="text-2xl font-bold">حوالات</h1>
           <p className="text-muted">سجّل دخولك للمتابعة</p>
         </div>

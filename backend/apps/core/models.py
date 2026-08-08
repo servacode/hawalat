@@ -238,6 +238,8 @@ class PlatformSettings(TimeStampedModel):
 
     free_mode = models.BooleanField("الوضع المجاني", default=True)
     self_registration_enabled = models.BooleanField("التسجيل الذاتي مفعّل", default=False)
+    # لوغو المنصة (data URL) يرفعه الأدمن — يظهر في الشعار والدخول (ملاحظة 15)
+    logo = models.TextField("لوغو المنصة", blank=True, default="")
 
     class Meta:
         verbose_name = "إعدادات المنصة"

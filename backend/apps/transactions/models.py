@@ -30,7 +30,7 @@ class Transaction(TenantScopedModel):
         NOT_DELIVERED = "not_delivered", "لم تُسلَّم"
         DELIVERED = "delivered", "تم التسليم"
 
-    reference_code = models.CharField("الرقم المرجعي", max_length=40, unique=True)
+    reference_code = models.CharField("الرقم المرجعي", max_length=40)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="أنشأها",
@@ -95,6 +95,11 @@ class Transaction(TenantScopedModel):
         verbose_name = "حركة"
         verbose_name_plural = "الحركات"
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "reference_code"], name="uniq_reference_per_tenant"
+            )
+        ]
 
     def __str__(self):
         return f"{self.reference_code} — {self.sender} → {self.beneficiary}"

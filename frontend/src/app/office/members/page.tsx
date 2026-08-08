@@ -188,7 +188,6 @@ export default function MembersPage() {
           <Input label="رقم هاتف واتساب" value={createForm.phone}
             onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
           <Input label="البريد الإلكتروني" type="email" dir="ltr"
-            hint="سيُعتمد عليه لاستعادة كلمة المرور"
             value={createForm.email}
             onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
           <Input label="اسم مجموعة الواتساب" value={createForm.whatsapp_group_name}

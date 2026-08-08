@@ -94,7 +94,7 @@ class CreateFlowTests(BaseTxnTestCase):
         res = self.send_txn()
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.data["approval_status"], "pending")
-        self.assertTrue(res.data["reference_code"].startswith("HW-BIG001-"))
+        self.assertRegex(res.data["reference_code"], r"^HW-\d{6}$")
 
     def test_unknown_currency_rejected(self):
         self.auth("aleppo")

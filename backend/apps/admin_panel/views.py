@@ -10,7 +10,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -41,6 +41,15 @@ def audit(actor, action_name, entity, entity_id, tenant=None, **data):
         entity_id=str(entity_id),
         data=data,
     )
+
+
+class BrandingView(APIView):
+    """هوية المنصة العامة (اللوغو) — متاحة للجميع لعرضها في الدخول والشعار."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({"logo": PlatformSettings.load().logo})
 
 
 class BigOfficeViewSet(viewsets.ViewSet):

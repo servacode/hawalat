@@ -1,14 +1,38 @@
 "use client";
 
-/** إعدادات المنصة: مفتاح الوضع المجاني/المدفوع + مفتاح التسجيل الذاتي. */
+/** إعدادات المنصة: الوضع المجاني/المدفوع + التسجيل الذاتي + لوغو المنصة. */
 
-import { useEffect, useState } from "react";
-import { Card, CardBody, CardHeader, CardTitle, Skeleton } from "@/components/ui";
+import { ImagePlus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Button, Card, CardBody, CardHeader, CardTitle, Skeleton } from "@/components/ui";
+import { PlatformLogo, invalidatePlatformLogo } from "@/components/layout/PlatformLogo";
 import { authedApi } from "@/lib/authedApi";
+
+/** يصغّر اللوغو (أقصى بُعد 512px مع حفظ النسبة والشفافية) ويعيده data URL. */
+async function fileToLogo(file: File): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+    const scale = Math.min(1, 512 / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 interface Settings {
   free_mode: boolean;
   self_registration_enabled: boolean;
+  logo: string;
 }
 
 function Toggle({
@@ -41,6 +65,29 @@ function Toggle({
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saved, setSaved] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
+
+  async function saveLogo(logo: string) {
+    setLogoBusy(true);
+    try {
+      const next = await authedApi<Settings>("/api/admin/settings/", {
+        method: "PATCH",
+        body: { logo },
+      });
+      setSettings(next);
+      invalidatePlatformLogo();
+    } finally {
+      setLogoBusy(false);
+    }
+  }
+
+  async function onPickLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await saveLogo(await fileToLogo(file));
+  }
 
   useEffect(() => {
     authedApi<Settings>("/api/admin/settings/").then(setSettings).catch(() => {});
@@ -79,6 +126,37 @@ export default function SettingsPage() {
           />
         </CardBody>
       </Card>
+      {/* لوغو المنصة (ملاحظة 15): يظهر بالشعار الجانبي وشاشة الدخول لكل المستخدمين */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImagePlus className="size-5 text-brand" /> لوغو المنصة
+          </CardTitle>
+        </CardHeader>
+        <CardBody className="flex flex-wrap items-center gap-5">
+          {settings.logo ? (
+            // eslint-disable-next-line @next/next/no-img-element -- data URL محلي
+            <img src={settings.logo} alt="لوغو المنصة" className="max-h-20 max-w-40 rounded-xl border border-border object-contain p-1" />
+          ) : (
+            <PlatformLogo className="size-14" />
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={logoBusy} onClick={() => logoRef.current?.click()}>
+              <ImagePlus className="size-4" /> {settings.logo ? "تغيير اللوغو" : "رفع لوغو"}
+            </Button>
+            {settings.logo && (
+              <Button variant="ghost" disabled={logoBusy} onClick={() => saveLogo("")}>
+                <Trash2 className="size-4" /> إزالة (العودة للافتراضي)
+              </Button>
+            )}
+          </div>
+          <input ref={logoRef} type="file" accept="image/*" hidden onChange={onPickLogo} />
+          <p className="w-full text-sm text-muted">
+            يظهر في الشعار الجانبي وشاشة الدخول لكل المكاتب — يُصغَّر تلقائياً مع حفظ الشفافية.
+          </p>
+        </CardBody>
+      </Card>
+
       {saved && <p className="text-sm text-success">تم الحفظ ✓</p>}
     </div>
   );

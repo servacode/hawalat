@@ -90,7 +90,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 class PlatformSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlatformSettings
-        fields = ["free_mode", "self_registration_enabled"]
+        fields = ["free_mode", "self_registration_enabled", "logo"]
+
+    def validate_logo(self, value):
+        value = value or ""
+        if value and not value.startswith("data:image/"):
+            raise serializers.ValidationError("صيغة الصورة غير صالحة.")
+        if len(value) > 400_000:
+            raise serializers.ValidationError("الصورة كبيرة جداً.")
+        return value
 
 
 class BroadcastSerializer(serializers.ModelSerializer):

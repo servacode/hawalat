@@ -221,7 +221,6 @@ export default function SmallSettingsPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              hint="سيُعتمد عليه لاستعادة كلمة المرور — احرص أن يكون صحيحاً وتملكه فعلاً."
             />
             {emailMsg && (
               <p

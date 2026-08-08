@@ -10,8 +10,23 @@ import { cn } from "@/lib/cn";
 import { LogoutButton } from "@/components/auth/RoleGuard";
 import { getSession, type SessionUser } from "@/lib/auth";
 import { NotificationBell } from "./NotificationBell";
+import { PlatformLogo } from "./PlatformLogo";
 import { ThemeToggle } from "./ThemeToggle";
 import { InstallButton } from "@/components/pwa/PwaSetup";
+
+/** كود المكتب في التوب بار بجانب الاسم (ملاحظة 15). */
+function OfficeCodeChip() {
+  const [code, setCode] = useState<string>("");
+  useEffect(() => {
+    setCode(getSession()?.user.office_code ?? "");
+  }, []);
+  if (!code) return null;
+  return (
+    <span dir="ltr" className="tnum shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-muted">
+      {code}
+    </span>
+  );
+}
 
 /** صورة/حرف المستخدم في التوب بار — تتحدث فور رفع صورة جديدة (hawalat:session). */
 function UserBadge() {
@@ -69,9 +84,7 @@ export function Shell({
     <div className="flex min-h-screen gap-4 bg-bg p-3 md:p-4">
       <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-64 shrink-0 flex-col overflow-y-auto rounded-2xl border border-border bg-surface shadow-sm md:flex">
         <div className="flex items-center gap-3 px-5 pb-4 pt-5">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white shadow-sm">
-            ح
-          </div>
+          <PlatformLogo />
           <div className="leading-tight">
             <p className="text-lg font-bold">حوالات</p>
             {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
@@ -106,7 +119,10 @@ export function Shell({
 
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <header className="sticky top-4 z-10 flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface/95 px-5 py-3.5 shadow-sm backdrop-blur md:px-6">
-          <h1 className="text-xl font-bold">{title}</h1>
+          <div className="flex min-w-0 items-center gap-3">
+            <h1 className="truncate text-xl font-bold">{title}</h1>
+            <OfficeCodeChip />
+          </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <NotificationBell />

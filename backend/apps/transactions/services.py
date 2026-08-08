@@ -42,11 +42,11 @@ ZERO = Decimal("0")
 
 
 def _generate_reference(tenant) -> str:
-    """رقم مرجعي فريد مرتبط بكود المكتب: HW-BIG001-000001 (المشهد 6)."""
+    """رقم مرجعي متسلسل لكل مستأجر: HW-000001 (ملاحظة التجربة 15 — بلا كود المكتب)."""
     seq = Transaction.all_objects.filter(tenant=tenant).count() + 1
     while True:
-        ref = f"HW-{tenant.code}-{seq:06d}"
-        if not Transaction.all_objects.filter(reference_code=ref).exists():
+        ref = f"HW-{seq:06d}"
+        if not Transaction.all_objects.filter(tenant=tenant, reference_code=ref).exists():
             return ref
         seq += 1
 

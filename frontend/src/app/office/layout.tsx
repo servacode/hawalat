@@ -21,7 +21,6 @@ export default function OfficeLayout({ children }: { children: React.ReactNode }
       {(session) => (
         <Shell
           title={session.user.tenant_name ?? "المكتب الكبير"}
-          subtitle={session.user.office_code}
           nav={NAV}
         >
           {children}

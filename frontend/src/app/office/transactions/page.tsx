@@ -2,11 +2,11 @@
 
 /** سجل حركات المكتب الكبير (الجزء 11): كل المنفَّذ + فلتر احترافي + مدفوعة/تسليم/عكس. */
 
-import { Check, CircleCheck, CircleX, HandCoins, PackageCheck, Pencil, RefreshCw, Undo2 } from "lucide-react";
+import { Check, CircleCheck, CircleX, FileSpreadsheet, FileText, HandCoins, PackageCheck, Pencil, RefreshCw, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, EmptyState, Input, Modal, Skeleton, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
-import { authedApi } from "@/lib/authedApi";
+import { authedApi, authedDownload } from "@/lib/authedApi";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
 interface Txn {
@@ -33,6 +33,14 @@ const STATUS_CARDS: StatusCardDef<Txn>[] = [
   { key: "reversed", label: "معكوسة", icon: Undo2, tone: "accent", match: (t) => t.approval_status === "reversed" },
 ];
 
+// الكرت النشط → فلاتر الخادم (للتصدير المطابق للعرض)
+function cardToServerParams(key: string): string {
+  if (key === "paid") return "payment=paid";
+  if (key === "delivered") return "delivery=delivered";
+  if (key) return `approval=${key}`;
+  return "";
+}
+
 export default function OfficeHistoryPage() {
   const [txns, setTxns] = useState<Txn[] | null>(null);
   const [q, setQ] = useState("");
@@ -54,6 +62,15 @@ export default function OfficeHistoryPage() {
   // الفلترة بالحالة محلياً — حتى تبقى أرقام الكروت شاملة دائماً
   const activeDef = STATUS_CARDS.find((d) => d.key === approval);
   const shown = txns && activeDef ? txns.filter(activeDef.match) : txns;
+  const [view, setView] = useViewMode();
+
+  function exportFile(fmt: "xlsx" | "pdf") {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    const extra = cardToServerParams(approval);
+    const qs = [params.toString(), extra, `export=${fmt}`].filter(Boolean).join("&");
+    authedDownload(`/api/office/transactions/history/?${qs}`, `سجل-الحركات.${fmt}`);
+  }
 
   function openEdit(t: Txn) {
     setEditFor(t);
@@ -89,6 +106,34 @@ export default function OfficeHistoryPage() {
     }
   }
 
+  function rowActions(t: Txn) {
+    if (t.approval_status !== "accepted") return null;
+    if (t.delivery_status === "delivered") {
+      // التسليم نهائي مطلق — الزبون استلم وذهب: لا أي إجراء
+      return <span className="text-sm text-muted">سُلّمت — نهائي</span>;
+    }
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {t.payment_status !== "paid" && (
+          <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "pay")}>
+            <HandCoins className="size-4" />مدفوعة
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "deliver")}>
+          <PackageCheck className="size-4" />تم التسليم
+        </Button>
+        {t.payment_status !== "paid" && (
+          <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
+            <Pencil className="size-4" />تعديل
+          </Button>
+        )}
+        <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
+          <Undo2 className="size-4" />عكس
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <StatusFilterCards items={txns ?? []} defs={STATUS_CARDS} active={approval} onChange={setApproval} />
@@ -99,6 +144,9 @@ export default function OfficeHistoryPage() {
             onChange={(e) => setQ(e.target.value)} />
         </div>
         <Button variant="ghost" onClick={load}><RefreshCw className="size-4" />تحديث</Button>
+        <Button variant="accent" onClick={() => exportFile("xlsx")}><FileSpreadsheet className="size-4" />Excel</Button>
+        <Button variant="accent" onClick={() => exportFile("pdf")}><FileText className="size-4" />PDF</Button>
+        <ViewToggle mode={view} onChange={setView} />
       </div>
 
       <p className="text-sm text-muted">
@@ -110,6 +158,33 @@ export default function OfficeHistoryPage() {
         <Skeleton className="h-64" />
       ) : shown.length === 0 ? (
         <EmptyState title="لا حركات منفَّذة بعد" />
+      ) : view === "cards" ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {shown.map((t) => (
+            <Card key={t.id}>
+              <CardBody className="flex flex-col gap-2 py-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span dir="ltr" className="tnum text-sm text-muted">{t.reference_code}</span>
+                  <Badge status={approvalBadge[t.approval_status]} />
+                </div>
+                <p className="tnum text-lg font-bold">{formatMoney(t.amount, t.currency_received)}</p>
+                <div className="flex flex-col gap-1 text-sm">
+                  <p><span className="text-muted">من مكتب:</span> {t.created_by_name}</p>
+                  <p><span className="text-muted">المستفيد:</span> {t.beneficiary}</p>
+                  <p><span className="text-muted">الوجهة:</span> {t.destination}</p>
+                  <p><span className="text-muted">الأجور (رأس مال/مستحقة):</span> {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)}` : "—"}</p>
+                  <p><span className="text-muted">الصندوق:</span> {t.box_name ?? "—"}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="tnum text-muted">{formatDateTime(t.created_at)}</span>
+                  {t.payment_status === "paid" && <Badge status="paid" />}
+                  {t.delivery_status === "delivered" && <Badge status="delivered" />}
+                </div>
+                {rowActions(t)}
+              </CardBody>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Table>
           <THead>
@@ -139,30 +214,7 @@ export default function OfficeHistoryPage() {
                   {t.delivery_status === "delivered" ? <Badge status="delivered" /> : <span className="text-muted">—</span>}
                 </TD>
                 <TD>
-                  {t.approval_status === "accepted" &&
-                    (t.delivery_status === "delivered" ? (
-                      // التسليم نهائي مطلق — الزبون استلم وذهب: لا أي إجراء
-                      <span className="text-sm text-muted">سُلّمت — نهائي</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {t.payment_status !== "paid" && (
-                          <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "pay")}>
-                            <HandCoins className="size-4" />مدفوعة
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "deliver")}>
-                          <PackageCheck className="size-4" />تم التسليم
-                        </Button>
-                        {t.payment_status !== "paid" && (
-                          <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
-                            <Pencil className="size-4" />تعديل
-                          </Button>
-                        )}
-                        <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
-                          <Undo2 className="size-4" />عكس
-                        </Button>
-                      </div>
-                    ))}
+                  {rowActions(t)}
                 </TD>
               </TR>
             ))}

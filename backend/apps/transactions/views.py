@@ -76,6 +76,65 @@ def apply_filters(qs, params):
     return qs
 
 
+APPROVAL_LABELS = {
+    "pending": "قيد الانتظار",
+    "accepted": "مقبولة",
+    "cancelled": "مرفوضة",
+    "reversed": "معكوسة",
+}
+
+
+def export_transactions(qs, params, owner_label):
+    """تصدير السجل المفلتر xlsx/pdf (ملاحظة 15) — نفس بيانات الجدول والكرت المختار."""
+    from django.http import HttpResponse
+
+    from apps.reports.export import to_pdf, to_xlsx
+
+    # وسم الفلتر النشط في العنوان
+    if s := params.get("approval"):
+        flt = APPROVAL_LABELS.get(s, s)
+    elif params.get("payment") == "paid":
+        flt = "المدفوعة"
+    elif params.get("delivery") == "delivered":
+        flt = "المسلَّمة"
+    else:
+        flt = "الكل"
+
+    rows = [
+        [
+            t.reference_code,
+            t.created_at.strftime("%Y-%m-%d %H:%M"),
+            t.sender or "—",
+            t.beneficiary,
+            t.amount,
+            t.currency_received,
+            t.fee_charged if t.fee_charged is not None else "—",
+            t.destination,
+            APPROVAL_LABELS.get(t.approval_status, t.approval_status),
+            "مدفوعة" if t.payment_status == "paid" else "—",
+            "تم التسليم" if t.delivery_status == "delivered" else "—",
+        ]
+        for t in qs[:1000]
+    ]
+    report = {
+        "title": f"سجل الحركات — {owner_label} ({flt})",
+        "columns": [
+            "المرجع", "التاريخ", "المرسِل", "المستفيد", "المبلغ", "العملة",
+            "الأجور", "الوجهة", "الحالة", "الدفع", "التسليم",
+        ],
+        "rows": rows,
+    }
+    if params.get("export") == "pdf":
+        content, ctype, ext = to_pdf(report), "application/pdf", "pdf"
+    else:
+        content = to_xlsx(report)
+        ctype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ext = "xlsx"
+    resp = HttpResponse(content, content_type=ctype)
+    resp["Content-Disposition"] = f'attachment; filename="transactions.{ext}"'
+    return resp
+
+
 class MyTransactionsViewSet(viewsets.ViewSet):
     """المكتب الصغير: إنشاء حركة + سجل حركاته. (الكبير أيضاً يُنشئ لنفسه من هنا.)"""
 
@@ -88,6 +147,10 @@ class MyTransactionsViewSet(viewsets.ViewSet):
 
     def list(self, request):
         qs = apply_filters(self._own_qs(request), request.query_params)
+        if request.query_params.get("export") in ("xlsx", "pdf"):
+            return export_transactions(
+                qs, request.query_params, request.user.first_name or request.user.username
+            )
         page = qs[:200]
         return Response(TransactionSerializer(page, many=True).data)
 
@@ -157,6 +220,8 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
             self._qs().exclude(approval_status=Transaction.Approval.PENDING),
             request.query_params,
         )
+        if request.query_params.get("export") in ("xlsx", "pdf"):
+            return export_transactions(qs, request.query_params, request.user.tenant.name)
         return Response(TransactionSerializer(qs[:200], many=True).data)
 
     def retrieve(self, request, pk=None):
