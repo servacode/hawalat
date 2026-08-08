@@ -61,6 +61,7 @@ export default function MemberProfilePage() {
   const [reconBusy, setReconBusy] = useState(false);
   const [reconSent, setReconSent] = useState(false);
   const [reconError, setReconError] = useState<string | null>(null);
+  const [sendBusy, setSendBusy] = useState(false);
   // كشف الحساب
   const [stCurrency, setStCurrency] = useState("");
   const [stLines, setStLines] = useState<StatementLine[] | null>(null);
@@ -115,9 +116,10 @@ export default function MemberProfilePage() {
   }
 
   async function sendRecon() {
-    if (!recon || !member) return;
+    if (!recon || !member || sendBusy) return;
     const text = buildReconciliationMessage(recon.rows);
     setReconError(null);
+    setSendBusy(true);
     try {
       // الرقم مربوط (ملاحظة 44)؟ تُرسل مباشرة من رقم المكتب بلا أي رابط
       const r = await authedApi<{ status: string; error: string }>(
@@ -133,9 +135,18 @@ export default function MemberProfilePage() {
       }
       return;
     } catch {
-      /* الوضع يدوي أو فشل → الرابط */
+      // الوضع يدوي أو فشل → الرابط، مع إرشاد واضح مهما كانت النتيجة (ملاحظة 48)
+      const how = await sendToWhatsApp(text, member.whatsapp_group_link || null);
+      setReconError(
+        how === "blocked"
+          ? "المتصفح منع فتح النافذة — النص منسوخ: افتح مجموعة الواتساب والصقه (Ctrl+V)."
+          : how === "copied"
+            ? "الوضع اليدوي: نُسخ النص وفُتحت المجموعة — الصقه (Ctrl+V) وأرسله."
+            : "الوضع اليدوي: فُتحت نافذة مشاركة واتساب بالنص الجاهز.",
+      );
+    } finally {
+      setSendBusy(false);
     }
-    await sendToWhatsApp(text, member.whatsapp_group_link || null);
   }
 
   async function toggleSuspend() {
@@ -307,7 +318,10 @@ export default function MemberProfilePage() {
                 {reconError && <p className="text-sm text-danger">{reconError}</p>}
                 <div className="flex flex-wrap items-center justify-end gap-3">
                   {reconSent && <p className="text-sm text-success">أُرسلت عبر الواتساب ✓</p>}
-                  <Button variant="accent" onClick={sendRecon}><MessageCircle className="size-4" />إرسال مطابقة</Button>
+                  <Button variant="accent" disabled={sendBusy} onClick={sendRecon}>
+                    <MessageCircle className="size-4" />
+                    {sendBusy ? "جارٍ الإرسال…" : "إرسال مطابقة"}
+                  </Button>
                   <Button disabled={reconBusy} onClick={commitRecon}>
                     {reconBusy ? "جارٍ…" : <><Flag className="size-4" />تثبيت كنقطة إغلاق</>}
                   </Button>

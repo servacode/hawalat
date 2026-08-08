@@ -43,11 +43,12 @@ export async function sendToWhatsApp(text: string, groupLink?: string | null) {
     } catch {
       /* تجاهل — سيلصق المستخدم يدوياً */
     }
-    window.open(groupLink, "_blank", "noopener");
-    return "copied" as const;
+    const win = window.open(groupLink, "_blank", "noopener");
+    // المتصفح قد يمنع النافذة (فتح بعد await) — نُعلم المستدعي ليُظهر إرشاداً (ملاحظة 48)
+    return win ? ("copied" as const) : ("blocked" as const);
   }
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-  return "shared" as const;
+  const win = window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  return win ? ("shared" as const) : ("blocked" as const);
 }
 
 // ---------------------------------------------------------------- المطابقة

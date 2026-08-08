@@ -6,6 +6,22 @@ from django.utils import timezone
 MAX_ATTEMPTS = 3
 
 
+@shared_task
+def waha_keepalive():
+    """يُبقي خادم الواتساب المجاني مستيقظاً (ملاحظة 48) — نبضة كل 10 دقائق."""
+    import requests
+
+    from apps.core.models import PlatformSettings
+
+    p = PlatformSettings.load()
+    if not p.waha_url:
+        return
+    try:
+        requests.get(p.waha_url.rstrip("/") + "/ping", timeout=10)
+    except requests.RequestException:
+        pass
+
+
 @shared_task(bind=True, max_retries=MAX_ATTEMPTS - 1, default_retry_delay=10)
 def send_whatsapp_message(self, message_id: int):
     from .models import WhatsAppMessage, WhatsAppSettings

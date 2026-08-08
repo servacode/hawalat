@@ -28,7 +28,11 @@ def _config():
     return p.waha_url.rstrip("/"), p.waha_key
 
 
-def _request(method: str, path: str, *, json=None, timeout: int = 15, ok404: bool = False):
+# مهلة تستوعب «صحوة» الخدمة المجانية النائمة (~50 ثانية) — ملاحظة 48
+WAKE_TIMEOUT = 75
+
+
+def _request(method: str, path: str, *, json=None, timeout: int = WAKE_TIMEOUT, ok404: bool = False):
     base, key = _config()
     headers = {"X-Api-Key": key} if key else {}
     try:
@@ -83,7 +87,6 @@ def group_join_info(tenant, invite_code: str) -> dict:
     response = _request(
         "GET",
         f"/api/{session_name(tenant)}/groups/join-info?code={invite_code}",
-        timeout=20,
     )
     return response.json() if response is not None else {}
 
@@ -93,5 +96,4 @@ def send_text(tenant, chat_id: str, text: str):
         "POST",
         "/api/sendText",
         json={"session": session_name(tenant), "chatId": chat_id, "text": text},
-        timeout=20,
     )

@@ -32,7 +32,7 @@ export default function SendPage() {
   const [created, setCreated] = useState<CreatedTxn | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [waState, setWaState] = useState<"copied" | "shared" | "bot" | null>(null);
+  const [waState, setWaState] = useState<"copied" | "shared" | "blocked" | "bot" | null>(null);
   const [bot, setBot] = useState<BotStatus | null>(null);
 
   useEffect(() => {
@@ -109,7 +109,9 @@ export default function SendPage() {
                 ? "أُرسلت تلقائياً لمجموعتك عبر البوت."
                 : waState === "copied"
                   ? "نُسخ النص — الصقه في مجموعتك التي فُتحت الآن."
-                  : "فُتحت نافذة الواتساب بالنص الجاهز."}
+                  : waState === "blocked"
+                    ? "المتصفح منع فتح النافذة — النص منسوخ: افتح الواتساب والصقه."
+                    : "فُتحت نافذة الواتساب بالنص الجاهز."}
             </p>
           )}
           <div className="flex flex-wrap gap-3">

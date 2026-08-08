@@ -156,6 +156,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.accounts.tasks.flush_expired_tokens",
         "schedule": crontab(hour=1, minute=0),
     },
+    # نبضة تمنع خادم الواتساب المجاني من النوم (ملاحظة 48)
+    "waha-keepalive": {
+        "task": "apps.whatsapp.tasks.waha_keepalive",
+        "schedule": 600.0,
+    },
 }
 
 # ---------------------------------------------------------------- DRF + JWT
