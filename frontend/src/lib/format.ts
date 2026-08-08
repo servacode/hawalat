@@ -22,6 +22,16 @@ export function balanceTone(value: number | string): "pos" | "neg" | "neutral" {
   return "neutral";
 }
 
+/** تاريخ فقط (سجل الحوالات — الساعة غير مهمة، ملاحظة 20) */
+export function formatDate(iso: string | Date): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  return new Intl.DateTimeFormat("en-GB", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
 /** تنسيق تاريخ/وقت موحّد (ميلادي بأرقام لاتينية للوضوح المحاسبي) */
 export function formatDateTime(iso: string | Date): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;

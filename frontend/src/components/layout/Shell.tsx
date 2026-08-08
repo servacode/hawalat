@@ -22,9 +22,9 @@ function OfficeCodeChip() {
   }, []);
   if (!code) return null;
   return (
-    <span dir="ltr" className="tnum shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-muted">
+    <p dir="ltr" className="tnum truncate text-xs font-medium text-muted" style={{ textAlign: "end" }}>
       {code}
-    </span>
+    </p>
   );
 }
 
@@ -116,7 +116,7 @@ export function Shell({
 
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <header className="sticky top-4 z-10 flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface/95 px-5 py-3.5 shadow-sm backdrop-blur md:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="min-w-0 leading-tight">
             <h1 className="truncate text-xl font-bold">{title}</h1>
             <OfficeCodeChip />
           </div>

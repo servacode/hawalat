@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
 import { authedApi, authedDownload } from "@/lib/authedApi";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
 
 interface Txn {
   id: number; reference_code: string; sender: string; beneficiary: string;
@@ -172,11 +172,11 @@ export default function OfficeHistoryPage() {
                   <p><span className="text-muted">من مكتب:</span> {t.created_by_name}</p>
                   <p><span className="text-muted">المستفيد:</span> {t.beneficiary}</p>
                   <p><span className="text-muted">الوجهة:</span> {t.destination}</p>
-                  <p><span className="text-muted">الأجور (رأس مال/مستحقة):</span> {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)}` : "—"}</p>
+                  <p><span className="text-muted">الأجور (رأس مال/مستحقة):</span> {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)} ${t.currency_received}` : "—"}</p>
                   <p><span className="text-muted">الصندوق:</span> {t.box_name ?? "—"}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="tnum text-muted">{formatDateTime(t.created_at)}</span>
+                  <span className="tnum text-muted">{formatDate(t.created_at)}</span>
                   {t.payment_status === "paid" && <Badge status="paid" />}
                   {t.delivery_status === "delivered" && <Badge status="delivered" />}
                 </div>
@@ -198,12 +198,12 @@ export default function OfficeHistoryPage() {
             {shown.map((t) => (
               <TR key={t.id}>
                 <TD className="tnum text-sm text-muted">{t.reference_code}</TD>
-                <TD className="tnum text-sm">{formatDateTime(t.created_at)}</TD>
+                <TD className="tnum text-sm">{formatDate(t.created_at)}</TD>
                 <TD>{t.created_by_name}</TD>
                 <TD>{t.beneficiary}</TD>
                 <TD className="tnum font-bold">{formatMoney(t.amount, t.currency_received)}</TD>
                 <TD className="tnum">
-                  {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)}` : "—"}
+                  {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)} ${t.currency_received}` : "—"}
                 </TD>
                 <TD>{t.box_name ?? "—"}</TD>
                 <TD><Badge status={approvalBadge[t.approval_status]} /></TD>

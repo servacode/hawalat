@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
 import { authedApi, authedDownload } from "@/lib/authedApi";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
 
 interface Txn {
   id: number; reference_code: string; sender: string; beneficiary: string;
@@ -99,10 +99,10 @@ export default function MyTransactionsPage() {
                   <p><span className="text-muted">المستفيد:</span> {t.beneficiary}</p>
                   {t.sender && <p><span className="text-muted">المرسِل:</span> {t.sender}</p>}
                   <p><span className="text-muted">الوجهة:</span> {t.destination}</p>
-                  <p><span className="text-muted">الأجور:</span> {t.fee_charged ? formatMoney(t.fee_charged) : "—"}</p>
+                  <p><span className="text-muted">الأجور:</span> {t.fee_charged ? formatMoney(t.fee_charged, t.currency_received) : "—"}</p>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span className="tnum text-muted">{formatDateTime(t.created_at)}</span>
+                  <span className="tnum text-muted">{formatDate(t.created_at)}</span>
                   <span className="flex gap-1.5">
                     {t.payment_status === "paid" && <Badge status="paid" />}
                     {t.delivery_status === "delivered" && <Badge status="delivered" />}
@@ -124,11 +124,11 @@ export default function MyTransactionsPage() {
             {shown.map((t) => (
               <TR key={t.id}>
                 <TD className="tnum text-sm text-muted">{t.reference_code}</TD>
-                <TD className="tnum text-sm">{formatDateTime(t.created_at)}</TD>
+                <TD className="tnum text-sm">{formatDate(t.created_at)}</TD>
                 <TD>{t.sender}</TD>
                 <TD>{t.beneficiary}</TD>
                 <TD className="tnum font-bold">{formatMoney(t.amount, t.currency_received)}</TD>
-                <TD className="tnum">{t.fee_charged ? formatMoney(t.fee_charged) : "—"}</TD>
+                <TD className="tnum">{t.fee_charged ? formatMoney(t.fee_charged, t.currency_received) : "—"}</TD>
                 <TD>{t.destination}</TD>
                 <TD><Badge status={approvalBadge[t.approval_status]} /></TD>
                 <TD>{t.payment_status === "paid" ? <Badge status="paid" /> : <span className="text-muted">—</span>}</TD>

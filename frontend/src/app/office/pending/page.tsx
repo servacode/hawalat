@@ -148,13 +148,14 @@ export default function PendingPage() {
               error={eligibleBoxes.length === 0 ? `لا صندوق يدعم عملة ${processing.currency_delivered} — أضف العملة لصندوق أولاً.` : undefined}
             />
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="رأس مال الأجور" type="number" step="0.01" min={0} className="tnum"
+              <Input label={`رأس مال الأجور (${processing.currency_received})`} type="number" step="0.01" min={0} className="tnum"
                 value={form.fee_cost}
                 onChange={(e) => setForm({ ...form, fee_cost: e.target.value })} />
-              <Input label="الأجور المستحقة" type="number" step="0.01" min={0} className="tnum"
+              <Input label={`الأجور المستحقة (${processing.currency_received})`} type="number" step="0.01" min={0} className="tnum"
                 value={form.fee_charged}
                 onChange={(e) => setForm({ ...form, fee_charged: e.target.value })} />
             </div>
+            <p className="text-sm text-muted">الأجور دائماً بعملة المبلغ المقبوضة ({processing.currency_received}).</p>
             {dual && (
               <Input
                 label={`سعر الصرف (1 ${processing.currency_received} = ? ${processing.currency_delivered})`}

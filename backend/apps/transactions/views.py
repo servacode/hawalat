@@ -104,7 +104,7 @@ def export_transactions(qs, params, owner_label):
     rows = [
         [
             t.reference_code,
-            t.created_at.strftime("%Y-%m-%d %H:%M"),
+            t.created_at.strftime("%Y-%m-%d"),
             t.sender or "—",
             t.beneficiary,
             fmt(t.amount),
