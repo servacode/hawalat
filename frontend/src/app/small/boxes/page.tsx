@@ -192,6 +192,31 @@ export default function SmallBoxesPage() {
                     {stLines.length === 0 ? (
                       <EmptyState title="لا حركات بهذه العملة بعد" />
                     ) : (
+                      view === "cards" ? (
+                        // الكشف كروتاً عند اختيار الكروت من الأعلى (ملاحظة 27)
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {stPager.slice.map((l) => (
+                            <Card key={l.id}>
+                              <CardBody className="flex flex-col gap-2 py-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <Badge status={KIND_BADGE[l.kind] ?? "delivered"}>
+                                    {KIND_LABEL[l.kind] ?? "تسوية"}
+                                  </Badge>
+                                  <span className="tnum text-xs text-muted">{formatDate(l.at)}</span>
+                                </div>
+                                <p className="tnum text-lg font-bold">
+                                  {Number(l.credit) ? (
+                                    <span className="text-pos">لنا +{formatMoney(l.credit)}</span>
+                                  ) : (
+                                    <span className="text-neg">لكم −{formatMoney(l.debit)}</span>
+                                  )}
+                                </p>
+                                <p dir="auto" className="tnum break-words text-sm text-muted">{l.note || l.memo}</p>
+                              </CardBody>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
                       <Table>
                         <THead><TR><TH>النوع</TH><TH>البيان</TH><TH>لنا</TH><TH>لكم</TH><TH>التاريخ</TH></TR></THead>
                         <TBody>
@@ -212,6 +237,7 @@ export default function SmallBoxesPage() {
                           ))}
                         </TBody>
                       </Table>
+                      )
                     )}
                     <Pagination page={stPager.page} pages={stPager.pages} total={stPager.total} onChange={stPager.setPage} />
                   </div>
