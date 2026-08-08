@@ -45,8 +45,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-bg p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <PlatformLogo className="size-14 rounded-2xl text-2xl shadow-md" />
-          <h1 className="text-2xl font-bold">حوالات</h1>
+          <PlatformLogo className="size-16 rounded-2xl text-3xl shadow-md" />
           <p className="text-muted">سجّل دخولك للمتابعة</p>
         </div>
 
