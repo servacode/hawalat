@@ -7,7 +7,7 @@
 
 import { ChevronDown, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Pagination, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table, usePagination, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Pagination, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { authedApi } from "@/lib/authedApi";
 import { onWsEvent } from "@/lib/ws";
@@ -35,6 +35,7 @@ export default function SmallBoxesPage() {
   const [stLines, setStLines] = useState<StatementLine[] | null>(null);
   const [stBalance, setStBalance] = useState("0");
   const stPager = usePagination(stLines ?? [], 10);
+  const [view, setView] = useViewMode();
 
   const load = useCallback(() => {
     authedApi<{ balances: BalanceRow[] }>("/api/small/balances/")
@@ -66,15 +67,19 @@ export default function SmallBoxesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-muted">
-        صندوق لكل عملة — الحساب تلقائي بالكامل. للمطابقة الرسمية وسجلها: قسم «المطابقات».
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-muted">
+          صندوق لكل عملة — الحساب تلقائي بالكامل. للمطابقة الرسمية وسجلها: قسم «المطابقات».
+        </p>
+        <ViewToggle mode={view} onChange={setView} />
+      </div>
 
       {!balances ? (
         <Skeleton className="h-32" />
       ) : balances.length === 0 ? (
         <EmptyState title="لا صناديق بعد" description="بعد أول حركة أو تسوية ستظهر صناديقك هنا." />
       ) : (
+        view === "cards" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {balances.map((b) => {
             const net = Number(b.net);
@@ -127,6 +132,32 @@ export default function SmallBoxesPage() {
             );
           })}
         </div>
+        ) : (
+        <Table>
+          <THead><TR><TH>العملة</TH><TH>لك</TH><TH>عليك</TH><TH>الصافي</TH><TH>التفاصيل</TH></TR></THead>
+          <TBody>
+            {balances.map((b) => {
+              const net = Number(b.net);
+              return (
+                <TR key={b.currency}>
+                  <TD className="font-bold">{b.currency}</TD>
+                  <TD className="tnum text-pos">{formatMoney(b.owed_to_me)}</TD>
+                  <TD className="tnum text-neg">{formatMoney(b.owed_by_me)}</TD>
+                  <TD className={`tnum font-bold ${balanceTone(net) === "pos" ? "text-pos" : balanceTone(net) === "neg" ? "text-neg" : ""}`}>
+                    {formatMoney(b.net)}
+                  </TD>
+                  <TD>
+                    <Button size="sm" variant="ghost" onClick={() => toggleStatement(b.currency)}>
+                      <ChevronDown className={cn("size-4 transition-transform", stFor === b.currency && "rotate-180")} />
+                      {stFor === b.currency ? "إغلاق" : "الكشف"}
+                    </Button>
+                  </TD>
+                </TR>
+              );
+            })}
+          </TBody>
+        </Table>
+        )
       )}
 
       {/* الكشف التفصيلي — يظهر أسفل الكروت عند الضغط على كرت العملة */}

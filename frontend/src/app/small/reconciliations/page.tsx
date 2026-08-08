@@ -20,6 +20,8 @@ import {
   THead,
   TR,
   Table,
+  ViewToggle,
+  useViewMode,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { authedApi, authedDownload } from "@/lib/authedApi";
@@ -51,6 +53,7 @@ function netLabel(balance: string) {
 export default function SmallReconciliationsPage() {
   const [history, setHistory] = useState<HistoryRec[] | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [view, setView] = useViewMode();
 
 
   const load = useCallback(() => {
@@ -62,10 +65,13 @@ export default function SmallReconciliationsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-muted">
-        كل مطابقة يثبّتها مكتبك تُحفظ هنا بلقطتها الكاملة — عند أي خطأ ارجع إليها لترى أين حصل،
-        ويمكنك تنزيل أي مطابقة ملف PDF.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-muted">
+          كل مطابقة يثبّتها مكتبك تُحفظ هنا بلقطتها الكاملة — عند أي خطأ ارجع إليها لترى أين حصل،
+          ويمكنك تنزيل أي مطابقة ملف PDF.
+        </p>
+        <ViewToggle mode={view} onChange={setView} />
+      </div>
 
       {!history ? (
         <Skeleton className="h-48" />
@@ -74,6 +80,81 @@ export default function SmallReconciliationsPage() {
           title="لا مطابقات مثبّتة بعد"
           description="بعد أول مطابقة يثبّتها مكتبك سيظهر سجلها هنا."
         />
+      ) : view === "table" ? (
+        <div className="flex flex-col gap-3">
+          <Table>
+            <THead>
+              <TR><TH>التاريخ</TH><TH>ثبّتها</TH><TH>الأرصدة المثبّتة</TH><TH>إجراءات</TH></TR>
+            </THead>
+            <TBody>
+              {history.map((r) => (
+                <TR key={r.id}>
+                  <TD className="tnum">{formatDateTime(r.at)}</TD>
+                  <TD>{r.by} {r.by_role === "big_office" ? "(مكتبك)" : ""}</TD>
+                  <TD>
+                    <span className="flex flex-wrap gap-3">
+                      {r.rows.map((row) => {
+                        const n = netLabel(row.balance);
+                        return (
+                          <span key={row.currency} className="tnum text-sm">
+                            <span className="text-muted">{row.currency}:</span>{" "}
+                            <span className={cn("font-bold", n.cls)}>{n.text}</span>
+                          </span>
+                        );
+                      })}
+                    </span>
+                  </TD>
+                  <TD>
+                    <span className="flex gap-1.5">
+                      <Button size="sm" variant="ghost" onClick={() => setOpenId(openId === r.id ? null : r.id)}>
+                        <ChevronDown className={cn("size-4 transition-transform", openId === r.id && "rotate-180")} />
+                        التفاصيل
+                      </Button>
+                      <Button size="sm" variant="accent"
+                        onClick={() => authedDownload(`/api/small/reconciliations/${r.id}/pdf/`, `مطابقة-${r.id}.pdf`)}>
+                        <FileText className="size-4" /> PDF
+                      </Button>
+                    </span>
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
+          {openId !== null && (() => {
+            const r = history.find((x) => x.id === openId);
+            if (!r) return null;
+            return (
+              <Card className="border-dashed">
+                <CardBody>
+                  <Table>
+                    <THead>
+                      <TR>
+                        <TH>العملة</TH><TH>الرصيد السابق</TH><TH>عليك (الفترة)</TH>
+                        <TH>لك (الفترة)</TH><TH>الصافي المثبّت</TH>
+                      </TR>
+                    </THead>
+                    <TBody>
+                      {r.rows.map((row) => {
+                        const n = netLabel(row.balance);
+                        return (
+                          <TR key={row.currency}>
+                            <TD className="font-medium">{row.currency}</TD>
+                            <TD className={cn("tnum", row.previous !== undefined && netLabel(row.previous).cls)}>
+                              {row.previous !== undefined ? netLabel(row.previous).text : "—"}
+                            </TD>
+                            <TD className="tnum">{row.debits !== undefined ? formatMoney(row.debits) : "—"}</TD>
+                            <TD className="tnum">{row.credits !== undefined ? formatMoney(row.credits) : "—"}</TD>
+                            <TD className={cn("tnum font-bold", n.cls)}>{n.text}</TD>
+                          </TR>
+                        );
+                      })}
+                    </TBody>
+                  </Table>
+                </CardBody>
+              </Card>
+            );
+          })()}
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {history.map((r) => {
