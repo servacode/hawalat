@@ -60,6 +60,7 @@ export default function MemberProfilePage() {
   const [recon, setRecon] = useState<Recon | null>(null);
   const [reconBusy, setReconBusy] = useState(false);
   const [reconSent, setReconSent] = useState(false);
+  const [reconError, setReconError] = useState<string | null>(null);
   // كشف الحساب
   const [stCurrency, setStCurrency] = useState("");
   const [stLines, setStLines] = useState<StatementLine[] | null>(null);
@@ -116,11 +117,20 @@ export default function MemberProfilePage() {
   async function sendRecon() {
     if (!recon || !member) return;
     const text = buildReconciliationMessage(recon.rows);
+    setReconError(null);
     try {
       // الرقم مربوط (ملاحظة 44)؟ تُرسل مباشرة من رقم المكتب بلا أي رابط
-      await authedApi("/api/whatsapp/send/", { method: "POST", body: { text, member_id: member.id } });
-      setReconSent(true);
-      setTimeout(() => setReconSent(false), 2500);
+      const r = await authedApi<{ status: string; error: string }>(
+        "/api/whatsapp/send/",
+        { method: "POST", body: { text, member_id: member.id } },
+      );
+      if (r.status === "sent") {
+        setReconSent(true);
+        setTimeout(() => setReconSent(false), 4000);
+      } else {
+        // لم تُسلَّم فوراً — أظهر السبب الحقيقي بدل الصمت (ملاحظة 47)
+        setReconError(r.error || "لم تُرسل بعد — سيُعاد المحاولة تلقائياً.");
+      }
       return;
     } catch {
       /* الوضع يدوي أو فشل → الرابط */
@@ -294,6 +304,7 @@ export default function MemberProfilePage() {
                     </TBody>
                   </Table>
                 )}
+                {reconError && <p className="text-sm text-danger">{reconError}</p>}
                 <div className="flex flex-wrap items-center justify-end gap-3">
                   {reconSent && <p className="text-sm text-success">أُرسلت عبر الواتساب ✓</p>}
                   <Button variant="accent" onClick={sendRecon}><MessageCircle className="size-4" />إرسال مطابقة</Button>

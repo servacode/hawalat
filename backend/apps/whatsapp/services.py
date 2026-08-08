@@ -79,5 +79,21 @@ def queue_message(*, to_user, text: str) -> WhatsAppMessage | None:
         chat_id=chat_id,
         text=text,
     )
-    send_whatsapp_message.delay(msg.pk)
+    # محاولة فورية ضمن الطلب (ملاحظة 47): لا اعتماد على عامل الخلفية —
+    # وعند الفشل تُترك للطابور ليعيد المحاولة.
+    from django.utils import timezone
+
+    from .waha import WahaError, send_text
+
+    try:
+        send_text(to_user.tenant, chat_id, text)
+    except WahaError as exc:
+        msg.attempts = 1
+        msg.last_error = str(exc)[:300]
+        msg.save(update_fields=["attempts", "last_error"])
+        send_whatsapp_message.delay(msg.pk)
+    else:
+        msg.status = WhatsAppMessage.Status.SENT
+        msg.sent_at = timezone.now()
+        msg.save(update_fields=["status", "sent_at"])
     return msg
