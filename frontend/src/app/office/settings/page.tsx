@@ -6,7 +6,7 @@
  * + سجل رسائل البوت (تشخيص).
  */
 
-import { Lightbulb, Save } from "lucide-react";
+import { Lightbulb, Save, Scale } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Input, PasswordInput, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
 import { authedApi } from "@/lib/authedApi";
@@ -23,7 +23,12 @@ interface OutMsg {
   status: "pending" | "sent" | "failed"; attempts: number; error: string; at: string;
 }
 
+interface Prefs {
+  allow_small_reconciliation: boolean;
+}
+
 export default function OfficeSettingsPage() {
+  const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [wa, setWa] = useState<WaSettings | null>(null);
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [token, setToken] = useState("");
@@ -36,6 +41,7 @@ export default function OfficeSettingsPage() {
       setGatewayUrl(d.gateway_url);
     }).catch(() => {});
     authedApi<OutMsg[]>("/api/office/whatsapp/outbox/").then(setOutbox).catch(() => setOutbox([]));
+    authedApi<Prefs>("/api/office/preferences/").then(setPrefs).catch(() => {});
   }, []);
   useEffect(load, [load]);
 
@@ -46,10 +52,45 @@ export default function OfficeSettingsPage() {
     setTimeout(() => setSaved(false), 1500);
   }
 
+  async function savePrefs(patch: Partial<Prefs>) {
+    const d = await authedApi<Prefs>("/api/office/preferences/", { method: "PATCH", body: patch });
+    setPrefs(d);
+  }
+
   if (!wa) return <Skeleton className="h-64" />;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
+      {/* صلاحيات المكاتب الصغيرة (ملاحظة التجربة 10) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Scale className="size-5 text-brand" /> صلاحيات المكاتب الصغيرة
+          </CardTitle>
+        </CardHeader>
+        <CardBody className="flex flex-col gap-3">
+          <label className="flex cursor-pointer items-start justify-between gap-4">
+            <span>
+              <span className="block font-medium">السماح بتثبيت المطابقة وإرسالها</span>
+              <span className="block text-sm text-muted">
+                مفعّل: يستطيع المكتب الصغير تثبيت نقطة مطابقة وإرسالها للواتساب بنفسه.
+                مطفأ: المعاينة فقط — والتثبيت من طرفك حصراً (قسم الحسابات ← مطابقة).
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={prefs?.allow_small_reconciliation ?? false}
+              onChange={(e) => savePrefs({ allow_small_reconciliation: e.target.checked })}
+              className="mt-1 size-5 shrink-0 accent-(--brand-600)"
+            />
+          </label>
+          <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
+            <Lightbulb className="mb-0.5 inline size-4" /> نقطة المطابقة تُثبّت رصيداً لا يتغير بأثر
+            رجعي — لذلك يُنصح بتركها بيدك إلا إذا كنت تثق بانضباط مكاتبك.
+          </p>
+        </CardBody>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>واتساب — وضع البوت</CardTitle>

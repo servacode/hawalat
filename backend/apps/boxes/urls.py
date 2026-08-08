@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CreditLimitViewSet,
+    OfficePreferencesView,
     CurrencyViewSet,
     IntermediaryBoxViewSet,
     MemberStatementView,
@@ -22,6 +23,7 @@ router.register("credit-limits", CreditLimitViewSet, basename="credit-limits")
 urlpatterns = [
     path("office/", include(router.urls)),
     path("office/shop-cash/", ShopCashView.as_view(), name="shop-cash"),
+    path("office/preferences/", OfficePreferencesView.as_view(), name="office-preferences"),
     path(
         "office/entries/<int:entry_id>/reverse/", ReverseEntryView.as_view(), name="reverse-entry"
     ),

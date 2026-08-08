@@ -101,6 +101,11 @@ export default function OfficeHistoryPage() {
         <Button variant="ghost" onClick={load}><RefreshCw className="size-4" />تحديث</Button>
       </div>
 
+      <p className="text-sm text-muted">
+        ملاحظة: «تم التسليم» نهائي — لا عكس ولا تعديل بعده، فلا تعلّمه إلا بعد تأكد الاستلام.
+        و«مدفوعة» تعني قبض المبلغ + الأجور نقداً في صندوق المحل.
+      </p>
+
       {!shown ? (
         <Skeleton className="h-64" />
       ) : shown.length === 0 ? (

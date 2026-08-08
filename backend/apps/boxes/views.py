@@ -264,6 +264,34 @@ class MyBalancesView(APIView):
         return Response({"balances": balances})
 
 
+class OfficePreferencesView(APIView):
+    """تفضيلات المكتب الكبير على مستوى المستأجر (صلاحيات مكاتبه الصغيرة)."""
+
+    permission_classes = [IsAuthenticated, IsBigOffice]
+
+    def get(self, request):
+        return Response(
+            {"allow_small_reconciliation": request.user.tenant.allow_small_reconciliation}
+        )
+
+    def patch(self, request):
+        tenant = request.user.tenant
+        if "allow_small_reconciliation" in request.data:
+            tenant.allow_small_reconciliation = bool(request.data["allow_small_reconciliation"])
+            tenant.save(update_fields=["allow_small_reconciliation"])
+            AuditLog.objects.create(
+                tenant=tenant,
+                actor=request.user,
+                action="update_office_preferences",
+                entity="tenant",
+                entity_id=str(tenant.pk),
+                data={"allow_small_reconciliation": tenant.allow_small_reconciliation},
+            )
+        return Response(
+            {"allow_small_reconciliation": tenant.allow_small_reconciliation}
+        )
+
+
 class ReconciliationView(APIView):
     """مطابقة مكتب صغير (المشهد 4) — GET معاينة، POST تثبيت (نقطة إغلاق جديدة)."""
 
@@ -297,6 +325,9 @@ class ReconciliationView(APIView):
                 "office_code": target.office_code,
                 "last_at": data["last_at"],
                 "rows": data["rows"],
+                # هل يستطيع الطالب تثبيت المطابقة؟ (الكبير دائماً — الصغير بإذن مكتبه)
+                "allowed": request.user.role == User.Role.BIG_OFFICE
+                or target.tenant.allow_small_reconciliation,
             }
         )
 
@@ -306,6 +337,15 @@ class ReconciliationView(APIView):
         target = self._target(request, user_id)
         if target is None:
             return Response(status=status.HTTP_403_FORBIDDEN)
+        # الصغير لا يثبّت مطابقة إلا إذا سمح مكتبه الكبير من الإعدادات (ملاحظة 10)
+        if (
+            request.user.role == User.Role.SMALL_OFFICE
+            and not target.tenant.allow_small_reconciliation
+        ):
+            return Response(
+                {"detail": "تثبيت المطابقة معطّل — يفعّله مكتبك الكبير من إعداداته."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         rec, data = commit_reconciliation(target, created_by=request.user)
         AuditLog.objects.create(
             tenant=target.tenant,

@@ -17,7 +17,7 @@ import { buildReconciliationMessage, sendToWhatsApp, type ReconciliationRow } fr
 
 interface BalanceRow { currency: string; owed_by_me: string; owed_to_me: string; net: string }
 interface StatementLine { id: number; memo: string; debit: string; credit: string; at: string }
-interface Recon { user: string; office_code: string; last_at: string | null; rows: ReconciliationRow[] }
+interface Recon { user: string; office_code: string; last_at: string | null; rows: ReconciliationRow[]; allowed?: boolean }
 
 export default function SmallBoxesPage() {
   const [balances, setBalances] = useState<BalanceRow[] | null>(null);
@@ -87,7 +87,7 @@ export default function SmallBoxesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <p className="text-muted">صندوق لكل عملة — الحساب تلقائي بالكامل.</p>
-        <Button variant="accent" onClick={openRecon}><Scale className="size-4" />مطابقة + إرسال</Button>
+        <Button variant="accent" onClick={openRecon}><Scale className="size-4" />المطابقة</Button>
       </div>
 
       {!balances ? (
@@ -226,11 +226,18 @@ export default function SmallBoxesPage() {
               </TBody>
             </Table>
             {waSent && <p className="text-sm text-success">ثُبّتت المطابقة وفُتح الواتساب بالنص ✓</p>}
-            <div className="flex justify-end">
-              <Button variant="accent" disabled={reconBusy} onClick={commitAndSend}>
-                {reconBusy ? "جارٍ…" : <><MessageCircle className="size-4" />تثبيت وإرسال للواتساب</>}
-              </Button>
-            </div>
+            {recon.allowed ? (
+              <div className="flex justify-end">
+                <Button variant="accent" disabled={reconBusy} onClick={commitAndSend}>
+                  {reconBusy ? "جارٍ…" : <><MessageCircle className="size-4" />تثبيت وإرسال للواتساب</>}
+                </Button>
+              </div>
+            ) : (
+              <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted">
+                هذه معاينة فقط — تثبيت المطابقة وإرسالها معطّل من مكتبك.
+                عند الحاجة لمطابقة رسمية اطلبها من مكتبك، أو يفعّل لك الصلاحية من إعداداته.
+              </p>
+            )}
           </div>
         )}
       </Modal>

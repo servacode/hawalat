@@ -149,6 +149,9 @@ export default function SendPage() {
               عملتان مختلفتان — سيُدخل مكتبك الكبير سعر الصرف قبل القبول.
             </p>
           )}
+          <p className="rounded-md bg-surface-2 px-3 py-2 text-sm text-muted sm:col-span-2">
+            ملاحظة: بعد الإرسال لا يمكنك تعديل الحركة — أي تصحيح يتم عبر مكتبك الكبير.
+          </p>
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="sm:col-span-2">
             <Button type="submit" size="lg" disabled={busy || !complete} className="w-full">

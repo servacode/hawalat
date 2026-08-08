@@ -35,6 +35,10 @@ class Tenant(TimeStampedModel):
     name = models.CharField("الاسم", max_length=150)
     code = models.CharField("الكود الفريد", max_length=20, unique=True)
     is_active = models.BooleanField("نشط", default=True)
+    # صلاحية يمنحها الكبير من إعداداته (ملاحظة التجربة 10): افتراضياً ممنوعة
+    allow_small_reconciliation = models.BooleanField(
+        "السماح للمكاتب الصغيرة بتثبيت المطابقة وإرسالها", default=False
+    )
 
     class Meta:
         verbose_name = "مستأجر (مكتب كبير)"
