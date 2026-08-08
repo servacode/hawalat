@@ -104,11 +104,11 @@ export default function PendingPage() {
                   <span dir="ltr" className="tnum ms-auto text-sm text-muted">{t.reference_code}</span>
                 </div>
                 <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
-                  <TxnField icon={Banknote} label="المبلغ"
-                    value={<span className="tnum text-base font-bold">{formatMoney(t.amount, t.currency_received)}</span>} />
                   <TxnField icon={Building2} label="من مكتب" value={t.created_by_name} />
                   {t.sender && <TxnField icon={UserRound} label="المرسِل" value={t.sender} />}
                   <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />
+                  <TxnField icon={Banknote} label="المبلغ"
+                    value={<span className="tnum text-base font-bold">{formatMoney(t.amount, t.currency_received)}</span>} />
                   <TxnField icon={MapPin} label="الوجهة" value={t.destination} />
                   {t.currency_delivered !== t.currency_received && (
                     <TxnField icon={CalendarDays} label="التسليم بعملة" value={t.currency_delivered} />

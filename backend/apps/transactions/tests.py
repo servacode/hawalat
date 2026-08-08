@@ -70,6 +70,26 @@ class BaseTxnTestCase(APITestCase):
 
 
 class CreateFlowTests(BaseTxnTestCase):
+    def test_suspended_member_logs_in_but_cannot_send(self):
+        """الإيقاف المؤقت (ملاحظة 40): يدخل حسابه ويشاهد — لكن لا يرسل أي حركة."""
+        self.auth("damascus")
+        res = self.client.post(f"/api/office/members/{self.small.pk}/suspend/")
+        self.assertEqual(res.status_code, 200)
+
+        login = self.auth("aleppo")  # الدخول يبقى مسموحاً
+        self.assertEqual(login.status_code, 200)
+        listed = self.client.get("/api/my/transactions/")
+        self.assertEqual(listed.status_code, 200)  # المشاهدة تعمل
+        denied = self.send_txn()
+        self.assertEqual(denied.status_code, 403)
+        self.assertIn("موقوف مؤقتاً", denied.data["detail"])
+
+        # إعادة التشغيل تفكّ القيد
+        self.auth("damascus")
+        self.client.post(f"/api/office/members/{self.small.pk}/unsuspend/")
+        self.auth("aleppo")
+        self.assertEqual(self.send_txn().status_code, 201)
+
     def test_sender_is_optional_but_rest_required(self):
         """اسم المرسِل اختياري — وبقية الحقول إجبارية."""
         self.auth("aleppo")

@@ -7,7 +7,7 @@
  */
 
 import {
-  ArrowRight, Ban, Bot, CalendarDays, FileText, Flag, Gauge, KeyRound,
+  ArrowRight, Ban, CalendarDays, CirclePause, CirclePlay, FileText, Flag, Gauge, KeyRound,
   Link2, LockOpen, Mail, MessageCircle, Pencil, Phone, Save, UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -27,7 +27,7 @@ interface Member {
   id: number; name: string; username: string; office_code: string;
   phone: string; email: string; whatsapp_group_name: string;
   whatsapp_group_link: string; whatsapp_chat_id: string;
-  is_blocked: boolean; date_joined: string;
+  is_blocked: boolean; is_suspended: boolean; date_joined: string;
 }
 interface CurrencyRow { code: string; name: string }
 interface Recon { user: string; office_code: string; last_at: string | null; rows: ReconciliationRow[] }
@@ -69,7 +69,7 @@ export default function MemberProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "", phone: "", email: "",
-    whatsapp_group_name: "", whatsapp_group_link: "", whatsapp_chat_id: "",
+    whatsapp_group_name: "", whatsapp_group_link: "",
   });
   const [editError, setEditError] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
@@ -124,6 +124,15 @@ export default function MemberProfilePage() {
     await sendToWhatsApp(text, member.whatsapp_group_link || null);
   }
 
+  async function toggleSuspend() {
+    if (!member) return;
+    await authedApi(
+      `/api/office/members/${member.id}/${member.is_suspended ? "unsuspend" : "suspend"}/`,
+      { method: "POST" },
+    );
+    load();
+  }
+
   async function toggleBlock() {
     if (!member) return;
     await authedApi(`/api/office/members/${member.id}/${member.is_blocked ? "unblock" : "block"}/`, { method: "POST" });
@@ -137,7 +146,6 @@ export default function MemberProfilePage() {
       name: member.name, phone: member.phone, email: member.email,
       whatsapp_group_name: member.whatsapp_group_name,
       whatsapp_group_link: member.whatsapp_group_link,
-      whatsapp_chat_id: member.whatsapp_chat_id,
     });
     setEditOpen(true);
   }
@@ -198,7 +206,13 @@ export default function MemberProfilePage() {
           <div className="leading-tight">
             <h2 className="flex items-center gap-2 text-lg font-bold">
               {member.name}
-              {member.is_blocked ? <Badge status="cancelled">محظور</Badge> : <Badge status="accepted">نشط</Badge>}
+              {member.is_blocked ? (
+                <Badge status="cancelled">محظور</Badge>
+              ) : member.is_suspended ? (
+                <Badge status="pending">موقوف مؤقتاً</Badge>
+              ) : (
+                <Badge status="accepted">نشط</Badge>
+              )}
             </h2>
             <p dir="ltr" className="tnum text-xs text-muted">{member.office_code}</p>
           </div>
@@ -207,6 +221,10 @@ export default function MemberProfilePage() {
           <Button variant="ghost" onClick={openEdit}><Pencil className="size-4" />تعديل البيانات</Button>
           <Button variant="ghost" onClick={() => setLimitOpen(true)}><Gauge className="size-4" />الحدود</Button>
           <Button variant="ghost" onClick={() => setResetOpen(true)}><KeyRound className="size-4" />كلمة المرور</Button>
+          <Button variant="accent" onClick={toggleSuspend}
+            title="الموقوف مؤقتاً يدخل حسابه لكن لا يرسل أي حركة">
+            {member.is_suspended ? <><CirclePlay className="size-4" />تشغيل</> : <><CirclePause className="size-4" />إيقاف مؤقت</>}
+          </Button>
           <Button variant={member.is_blocked ? "primary" : "danger"} onClick={toggleBlock}>
             {member.is_blocked ? <><LockOpen className="size-4" />فك الحظر</> : <><Ban className="size-4" />حظر</>}
           </Button>
@@ -228,8 +246,6 @@ export default function MemberProfilePage() {
                   <a href={member.whatsapp_group_link} target="_blank" rel="noreferrer" dir="ltr"
                     className="text-brand-700 hover:underline">فتح الرابط</a>
                 ) : "—"} />
-              <TxnField icon={Bot} label="معرّف مجموعة البوت"
-                value={member.whatsapp_chat_id ? <span dir="ltr" className="tnum">{member.whatsapp_chat_id}</span> : "—"} />
               <TxnField icon={CalendarDays} label="تاريخ الفتح"
                 value={<span className="tnum">{formatDate(member.date_joined)}</span>} />
             </div>
@@ -374,8 +390,6 @@ export default function MemberProfilePage() {
             onChange={(e) => setEditForm({ ...editForm, whatsapp_group_name: e.target.value })} />
           <Input label="رابط مجموعة الواتساب" dir="ltr" value={editForm.whatsapp_group_link}
             onChange={(e) => setEditForm({ ...editForm, whatsapp_group_link: e.target.value })} />
-          <Input label="معرّف مجموعة البوت" dir="ltr" value={editForm.whatsapp_chat_id}
-            onChange={(e) => setEditForm({ ...editForm, whatsapp_chat_id: e.target.value })} />
           {editError && <p className="text-sm text-danger sm:col-span-2">{editError}</p>}
           <div className="flex justify-end gap-3 sm:col-span-2">
             <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>إلغاء</Button>

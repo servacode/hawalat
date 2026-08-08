@@ -34,9 +34,17 @@ class MemberSerializer(serializers.ModelSerializer):
             "whatsapp_group_link",
             "whatsapp_chat_id",
             "is_blocked",
+            "is_suspended",
             "date_joined",
         ]
-        read_only_fields = ["id", "username", "office_code", "date_joined", "is_blocked"]
+        read_only_fields = [
+            "id",
+            "username",
+            "office_code",
+            "date_joined",
+            "is_blocked",
+            "is_suspended",
+        ]
 
 
 class CreateMemberSerializer(serializers.Serializer):
@@ -110,6 +118,27 @@ class MembersViewSet(viewsets.ViewSet):
         member.save(update_fields=["is_blocked"])
         self._audit(request, "block_member", member)
         return Response({"detail": "تم حظر المكتب."})
+
+    @action(detail=True, methods=["post"])
+    def suspend(self, request, pk=None):
+        """إيقاف مؤقت (ملاحظة 40): يدخل حسابه لكن لا يرسل أي حركة."""
+        member = self._qs(request).filter(pk=pk).first()
+        if member is None:
+            return Response(status=404)
+        member.is_suspended = True
+        member.save(update_fields=["is_suspended"])
+        self._audit(request, "suspend_member", member)
+        return Response({"detail": "تم الإيقاف المؤقت — يدخل ولا يرسل."})
+
+    @action(detail=True, methods=["post"])
+    def unsuspend(self, request, pk=None):
+        member = self._qs(request).filter(pk=pk).first()
+        if member is None:
+            return Response(status=404)
+        member.is_suspended = False
+        member.save(update_fields=["is_suspended"])
+        self._audit(request, "unsuspend_member", member)
+        return Response({"detail": "أُعيد التشغيل."})
 
     @action(detail=True, methods=["post"])
     def unblock(self, request, pk=None):

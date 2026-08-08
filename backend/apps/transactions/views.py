@@ -158,6 +158,12 @@ class MyTransactionsViewSet(viewsets.ViewSet):
     def create(self, request):
         if request.user.role not in (User.Role.SMALL_OFFICE, User.Role.BIG_OFFICE):
             return Response(status=status.HTTP_403_FORBIDDEN)
+        # الإيقاف المؤقت (ملاحظة 40): يدخل ويشاهد، لكن لا يرسل أي حركة
+        if request.user.is_suspended:
+            return Response(
+                {"detail": "حسابك موقوف مؤقتاً عن إرسال الحركات — تواصل مع مكتبك."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         serializer = CreateTransactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:

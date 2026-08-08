@@ -37,6 +37,8 @@ class User(AbstractUser):
     # معرّف المحادثة للبوت (اختياري — يُستخدم فقط عند تفعيل وضع البوت)
     whatsapp_chat_id = models.CharField("معرّف مجموعة البوت", max_length=100, blank=True)
     is_blocked = models.BooleanField("محظور", default=False)
+    # إيقاف مؤقت (ملاحظة التجربة 40): يدخل حسابه لكن لا يستطيع إرسال أي حركة
+    is_suspended = models.BooleanField("موقوف مؤقتاً", default=False)
     # صورة بروفايل مضمّنة (data URL) — تعمل على أي استضافة بلا تخزين ملفات
     avatar = models.TextField("صورة البروفايل", blank=True, default="")
 

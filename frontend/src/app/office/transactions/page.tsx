@@ -179,10 +179,10 @@ export default function OfficeHistoryPage() {
                   <span dir="ltr" className="tnum ms-auto text-sm text-muted">{t.reference_code}</span>
                 </div>
                 <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
-                  <TxnField icon={Banknote} label="المبلغ"
-                    value={<span className="tnum text-base font-bold">{formatMoney(t.amount, t.currency_received)}</span>} />
                   <TxnField icon={Building2} label="من مكتب" value={t.created_by_name} />
                   <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />
+                  <TxnField icon={Banknote} label="المبلغ"
+                    value={<span className="tnum text-base font-bold">{formatMoney(t.amount, t.currency_received)}</span>} />
                   <TxnField icon={MapPin} label="الوجهة" value={t.destination} />
                   <TxnField icon={Coins} label="الأجور"
                     value={t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)} ${t.currency_received}` : "—"} />
@@ -222,7 +222,7 @@ export default function OfficeHistoryPage() {
                 <TD><Badge status={approvalBadge[t.approval_status]} /></TD>
                 <TD><DoneCheck done={t.payment_status === "paid"} label="مدفوعة" /></TD>
                 <TD><DoneCheck done={t.delivery_status === "delivered"} label="تم التسليم" /></TD>
-                <TD>{rowActions(t, true)}</TD>
+                <TD className="w-px">{rowActions(t, true) ?? <span aria-hidden="true" className="block text-center text-muted/50">—</span>}</TD>
               </TR>
             ))}
           </TBody>

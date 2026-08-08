@@ -5,7 +5,7 @@
  * الضغط على المكتب يفتح ملفه الفردي الكامل (ملاحظة 34) — كل الإجراءات هناك.
  */
 
-import { ChevronLeft, Mail, MessageCircle, Phone, UserPlus, UserRound } from "lucide-react";
+import { Mail, MessageCircle, Phone, UserPlus, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -19,12 +19,12 @@ import { authedApi } from "@/lib/authedApi";
 interface Member {
   id: number; name: string; username: string; office_code: string;
   phone: string; email: string; whatsapp_group_name: string;
-  is_blocked: boolean;
+  is_blocked: boolean; is_suspended: boolean;
 }
 
 const emptyCreate = {
   name: "", username: "", password: "", phone: "", email: "",
-  whatsapp_group_name: "", whatsapp_group_link: "", whatsapp_chat_id: "",
+  whatsapp_group_name: "", whatsapp_group_link: "",
 };
 
 export default function MembersPage() {
@@ -74,7 +74,13 @@ export default function MembersPage() {
             <Card key={m.id}>
               <CardBody className="flex flex-col gap-2.5 py-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  {m.is_blocked ? <Badge status="cancelled">محظور</Badge> : <Badge status="accepted">نشط</Badge>}
+                  {m.is_blocked ? (
+                    <Badge status="cancelled">محظور</Badge>
+                  ) : m.is_suspended ? (
+                    <Badge status="pending">موقوف مؤقتاً</Badge>
+                  ) : (
+                    <Badge status="accepted">نشط</Badge>
+                  )}
                   <span dir="ltr" className="tnum ms-auto text-sm text-muted">{m.office_code}</span>
                 </div>
                 <Link href={`/office/members/${m.id}`} className="text-lg font-bold text-brand-700 hover:underline">
@@ -86,10 +92,6 @@ export default function MembersPage() {
                   <TxnField icon={Mail} label="البريد" value={m.email || "—"} />
                   <TxnField icon={MessageCircle} label="مجموعة الواتساب" value={m.whatsapp_group_name || "—"} />
                 </div>
-                <Link href={`/office/members/${m.id}`}
-                  className="flex items-center justify-center gap-1 rounded-lg border border-border py-2 text-sm font-medium transition-colors hover:border-brand hover:text-brand-700">
-                  الملف الكامل <ChevronLeft className="size-4" />
-                </Link>
               </CardBody>
             </Card>
           ))}
@@ -99,7 +101,7 @@ export default function MembersPage() {
           <THead>
             <TR>
               <TH>الكود</TH><TH>الاسم</TH><TH>المستخدم</TH><TH>الهاتف</TH>
-              <TH>مجموعة الواتساب</TH><TH>الحالة</TH><TH>الملف</TH>
+              <TH>مجموعة الواتساب</TH><TH>الحالة</TH>
             </TR>
           </THead>
           <TBody>
@@ -115,13 +117,13 @@ export default function MembersPage() {
                 <TD className="tnum">{m.phone || "—"}</TD>
                 <TD>{m.whatsapp_group_name || "—"}</TD>
                 <TD>
-                  {m.is_blocked ? <Badge status="cancelled">محظور</Badge> : <Badge status="accepted">نشط</Badge>}
-                </TD>
-                <TD>
-                  <Link href={`/office/members/${m.id}`}
-                    className="flex w-fit items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-sm transition-colors hover:border-brand hover:text-brand-700">
-                    الملف الكامل <ChevronLeft className="size-4" />
-                  </Link>
+                  {m.is_blocked ? (
+                    <Badge status="cancelled">محظور</Badge>
+                  ) : m.is_suspended ? (
+                    <Badge status="pending">موقوف مؤقتاً</Badge>
+                  ) : (
+                    <Badge status="accepted">نشط</Badge>
+                  )}
                 </TD>
               </TR>
             ))}
@@ -149,10 +151,6 @@ export default function MembersPage() {
           <Input label="رابط مجموعة الواتساب" dir="ltr" placeholder="https://chat.whatsapp.com/…"
             value={createForm.whatsapp_group_link}
             onChange={(e) => setCreateForm({ ...createForm, whatsapp_group_link: e.target.value })} />
-          <Input label="معرّف مجموعة البوت (اختياري)" dir="ltr" placeholder="12036…@g.us"
-            hint="يلزم فقط عند تفعيل وضع البوت"
-            value={createForm.whatsapp_chat_id}
-            onChange={(e) => setCreateForm({ ...createForm, whatsapp_chat_id: e.target.value })} />
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <div className="flex justify-end gap-3 sm:col-span-2">
             <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>إلغاء</Button>
