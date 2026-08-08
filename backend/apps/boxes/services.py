@@ -152,9 +152,8 @@ def deposit_to_box(
     return post_entry(
         tenant=tenant,
         entry_type=JournalEntry.EntryType.SETTLEMENT,
-        memo=f"اعتماد باسم {small_user.first_name or small_user.username}: {memo}"
-        if memo
-        else f"اعتماد باسم {small_user.first_name or small_user.username}",
+        memo=f"اعتماد باسم {small_user.first_name or small_user.username}: "
+        f"في صندوق {box.name}" + (f" — {memo}" if memo else ""),
         lines=[
             (box_account, amount, Decimal("0")),  # مدين: زاد رصيدنا في الصندوق
             (small_account, Decimal("0"), amount),  # دائن: نقص ما على الصغير
@@ -173,9 +172,8 @@ def withdraw_from_box(
     return post_entry(
         tenant=tenant,
         entry_type=JournalEntry.EntryType.SETTLEMENT,
-        memo=f"سحب باسم {small_user.first_name or small_user.username}: {memo}"
-        if memo
-        else f"سحب باسم {small_user.first_name or small_user.username}",
+        memo=f"سحب باسم {small_user.first_name or small_user.username}: "
+        f"من صندوق {box.name}" + (f" — {memo}" if memo else ""),
         lines=[
             (small_account, amount, Decimal("0")),  # مدين: زاد ما على الصغير
             (box_account, Decimal("0"), amount),  # دائن: نقص الصندوق
@@ -218,6 +216,49 @@ def adjust_box(*, tenant, box: IntermediaryBox, currency: str, amount: Decimal, 
 # ---------------------------------------------------------------- كشوف
 
 
+# تصنيف سطر الكشف (ملاحظة 22): نوع واضح + بيان نظيف (مرجع أو ملاحظة)
+import re as _re
+
+_REF_RE = _re.compile(r"HW-[A-Z0-9-]*\d")
+
+STATEMENT_KIND_LABELS = {
+    "transaction": "حوالة",
+    "deposit": "اعتماد",
+    "withdraw": "سحب",
+    "payment": "قبض",
+    "reversal": "عكس/ملغاة",
+    "adjustment": "تسوية",
+    "settlement": "تسوية",
+}
+
+
+def classify_statement_line(entry_type: str, memo: str) -> tuple[str, str]:
+    """يعيد (kind, note): النوع المصنّف والبيان النظيف — المرجع إن وُجد وإلا الملاحظة."""
+    memo = memo or ""
+    if entry_type == JournalEntry.EntryType.REVERSAL:
+        kind = "reversal"
+    elif entry_type == JournalEntry.EntryType.TRANSACTION:
+        kind = "transaction"
+    elif memo.startswith("اعتماد"):
+        kind = "deposit"
+    elif memo.startswith("سحب"):
+        kind = "withdraw"
+    elif memo.startswith("قبض"):
+        kind = "payment"
+    elif memo.startswith("تسوية"):
+        kind = "adjustment"
+    else:
+        kind = "settlement"
+    m = _REF_RE.search(memo)
+    if m:
+        note = m.group(0)
+    elif ":" in memo:
+        note = memo.split(":", 1)[1].strip()
+    else:
+        note = memo
+    return kind, note
+
+
 def account_statement(account: Account, limit: int = 200):
     """كشف حساب: الأسطر الأخيرة مع الرصيد الجاري."""
     lines = account.lines.select_related("entry").order_by("-created_at", "-id")[:limit]
@@ -231,6 +272,8 @@ def account_statement(account: Account, limit: int = 200):
                 "entry_id": line.entry_id,
                 "entry_type": line.entry.entry_type,
                 "memo": line.entry.memo,
+                "kind": (c := classify_statement_line(line.entry.entry_type, line.entry.memo))[0],
+                "note": c[1],
                 "debit": line.debit,
                 "credit": line.credit,
                 "at": line.created_at,

@@ -7,14 +7,27 @@
 
 import { ChevronDown, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { authedApi } from "@/lib/authedApi";
 import { onWsEvent } from "@/lib/ws";
-import { balanceTone, formatDateTime, formatMoney } from "@/lib/format";
+import { balanceTone, formatDate, formatMoney } from "@/lib/format";
 
 interface BalanceRow { currency: string; owed_by_me: string; owed_to_me: string; net: string }
-interface StatementLine { id: number; memo: string; debit: string; credit: string; at: string }
+interface StatementLine {
+  id: number; memo: string; kind: string; note: string;
+  debit: string; credit: string; at: string;
+}
+
+// تصنيف أنواع الكشف (ملاحظة 22): نوع واضح بدل البيان الخام
+const KIND_LABEL: Record<string, string> = {
+  transaction: "حوالة", deposit: "اعتماد", withdraw: "سحب",
+  payment: "قبض", reversal: "ملغاة/عكس", adjustment: "تسوية", settlement: "تسوية",
+};
+const KIND_BADGE: Record<string, BadgeStatus> = {
+  transaction: "accepted", deposit: "delivered", withdraw: "pending",
+  payment: "paid", reversal: "reversed", adjustment: "delivered", settlement: "delivered",
+};
 
 export default function SmallBoxesPage() {
   const [balances, setBalances] = useState<BalanceRow[] | null>(null);
@@ -148,14 +161,21 @@ export default function SmallBoxesPage() {
                       <EmptyState title="لا حركات بهذه العملة بعد" />
                     ) : (
                       <Table>
-                        <THead><TR><TH>البيان</TH><TH>لنا</TH><TH>لكم</TH><TH>الوقت</TH></TR></THead>
+                        <THead><TR><TH>النوع</TH><TH>البيان</TH><TH>لنا</TH><TH>لكم</TH><TH>التاريخ</TH></TR></THead>
                         <TBody>
                           {stLines.map((l) => (
                             <TR key={l.id}>
-                              <TD className="max-w-64">{l.memo}</TD>
+                              <TD>
+                                <Badge status={KIND_BADGE[l.kind] ?? "delivered"}>
+                                  {KIND_LABEL[l.kind] ?? "تسوية"}
+                                </Badge>
+                              </TD>
+                              <TD className="max-w-64">
+                                <span dir="auto" className="tnum">{l.note || l.memo}</span>
+                              </TD>
                               <TD className="tnum text-pos">{Number(l.credit) ? formatMoney(l.credit) : "—"}</TD>
                               <TD className="tnum text-neg">{Number(l.debit) ? formatMoney(l.debit) : "—"}</TD>
-                              <TD className="tnum text-sm">{formatDateTime(l.at)}</TD>
+                              <TD className="tnum text-sm">{formatDate(l.at)}</TD>
                             </TR>
                           ))}
                         </TBody>
