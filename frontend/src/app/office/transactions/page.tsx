@@ -4,7 +4,7 @@
 
 import { Building2, CalendarDays, Check, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, MapPin, PackageCheck, Pencil, RefreshCw, Undo2, UserCheck, Wallet } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Pagination, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
 import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi, authedDownload } from "@/lib/authedApi";
@@ -64,6 +64,7 @@ export default function OfficeHistoryPage() {
   const activeDef = STATUS_CARDS.find((d) => d.key === approval);
   const shown = txns && activeDef ? txns.filter(activeDef.match) : txns;
   const [view, setView] = useViewMode();
+  const pager = usePagination(shown ?? [], 9);
 
   function exportFile(fmt: "xlsx" | "pdf") {
     const params = new URLSearchParams();
@@ -161,7 +162,7 @@ export default function OfficeHistoryPage() {
         <EmptyState title="لا حركات منفَّذة بعد" />
       ) : view === "cards" ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {shown.map((t) => (
+          {pager.slice.map((t) => (
             <Card key={t.id}>
               <CardBody className="flex flex-col gap-2.5 py-3.5">
                 {/* الحالات يميناً والمرجع أعلى اليسار (ملاحظة 23) */}
@@ -199,7 +200,7 @@ export default function OfficeHistoryPage() {
             </TR>
           </THead>
           <TBody>
-            {shown.map((t) => (
+            {pager.slice.map((t) => (
               <TR key={t.id}>
                 <TD className="tnum text-sm text-muted">{t.reference_code}</TD>
                 <TD className="tnum text-sm">{formatDate(t.created_at)}</TD>
@@ -225,6 +226,8 @@ export default function OfficeHistoryPage() {
           </TBody>
         </Table>
       )}
+      <Pagination page={pager.page} pages={pager.pages} total={pager.total} onChange={pager.setPage} />
+
       <Modal open={editFor !== null} onClose={() => setEditFor(null)}
         title={editFor ? `تعديل ${editFor.reference_code}` : ""}>
         <form onSubmit={submitEdit} className="flex flex-col gap-4">

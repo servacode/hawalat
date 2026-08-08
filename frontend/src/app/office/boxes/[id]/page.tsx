@@ -32,7 +32,9 @@ import {
   THead,
   TR,
   Table,
+  Pagination,
   ViewToggle,
+  usePagination,
   useViewMode,
   type BadgeStatus,
 } from "@/components/ui";
@@ -90,6 +92,7 @@ export default function BoxDetailsPage() {
   const [currency, setCurrency] = useState("");
   const [data, setData] = useState<Movements | null>(null);
   const [view, setView] = useViewMode();
+  const pager = usePagination(data?.rows ?? [], 10);
 
   // الفلاتر (ملاحظة 16): النوع + المكتب + التاريخ
   const [kind, setKind] = useState("");
@@ -255,7 +258,7 @@ export default function BoxDetailsPage() {
         <EmptyState title="لا حركات بهذه الفلاتر" />
       ) : view === "cards" ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.rows.map((r) => (
+          {pager.slice.map((r) => (
             <Card key={r.id}>
               <CardBody className="flex flex-col gap-2 py-3.5">
                 <div className="flex items-center justify-between gap-2">
@@ -284,7 +287,7 @@ export default function BoxDetailsPage() {
             </TR>
           </THead>
           <TBody>
-            {data.rows.map((r) => (
+            {pager.slice.map((r) => (
               <TR key={r.id}>
                 <TD className="tnum text-sm">{formatDateTime(r.at)}</TD>
                 <TD><Badge status={KIND_BADGE[r.kind]}>{KIND_LABEL[r.kind]}</Badge></TD>
@@ -297,6 +300,8 @@ export default function BoxDetailsPage() {
           </TBody>
         </Table>
       )}
+
+      <Pagination page={pager.page} pages={pager.pages} total={pager.total} onChange={pager.setPage} />
 
       {/* اعتماد / سحب / تسوية — السبب إلزامي دائماً */}
       <Modal

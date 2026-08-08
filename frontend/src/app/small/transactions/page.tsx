@@ -4,7 +4,7 @@
 
 import { CalendarDays, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, Hourglass, MapPin, PackageCheck, RefreshCw, Undo2, UserCheck, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, EmptyState, Input, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, Card, CardBody, EmptyState, Input, Pagination, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
 import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi, authedDownload } from "@/lib/authedApi";
@@ -58,6 +58,7 @@ export default function MyTransactionsPage() {
   const activeDef = STATUS_CARDS.find((d) => d.key === approval);
   const shown = txns && activeDef ? txns.filter(activeDef.match) : txns;
   const [view, setView] = useViewMode();
+  const pager = usePagination(shown ?? [], 9);
 
   function exportFile(fmt: "xlsx" | "pdf") {
     const params = new URLSearchParams();
@@ -88,7 +89,7 @@ export default function MyTransactionsPage() {
         <EmptyState title="لا نتائج" />
       ) : view === "cards" ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {shown.map((t) => (
+          {pager.slice.map((t) => (
             <Card key={t.id}>
               <CardBody className="flex flex-col gap-2.5 py-3.5">
                 {/* الحالات يميناً والمرجع أعلى اليسار (ملاحظة 23) */}
@@ -123,7 +124,7 @@ export default function MyTransactionsPage() {
             </TR>
           </THead>
           <TBody>
-            {shown.map((t) => (
+            {pager.slice.map((t) => (
               <TR key={t.id}>
                 <TD className="tnum text-sm text-muted">{t.reference_code}</TD>
                 <TD className="tnum text-sm">{formatDate(t.created_at)}</TD>
@@ -140,6 +141,8 @@ export default function MyTransactionsPage() {
           </TBody>
         </Table>
       )}
+
+      <Pagination page={pager.page} pages={pager.pages} total={pager.total} onChange={pager.setPage} />
     </div>
   );
 }

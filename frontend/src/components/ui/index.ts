@@ -5,6 +5,7 @@ export { Card, CardHeader, CardTitle, CardBody } from "./Card";
 export { Input } from "./Input";
 export { PasswordInput } from "./PasswordInput";
 export { ViewToggle, useViewMode, type ViewMode } from "./ViewToggle";
+export { Pagination, usePagination } from "./Pagination";
 export { Select, type SelectOption } from "./Select";
 export { Table, THead, TBody, TR, TH, TD } from "./Table";
 export { StatCard } from "./StatCard";

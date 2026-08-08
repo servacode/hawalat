@@ -7,7 +7,7 @@
 
 import { ChevronDown, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table, type BadgeStatus } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, Pagination, Skeleton, StatCard, TBody, TD, TH, THead, TR, Table, usePagination, type BadgeStatus } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { authedApi } from "@/lib/authedApi";
 import { onWsEvent } from "@/lib/ws";
@@ -34,6 +34,7 @@ export default function SmallBoxesPage() {
   const [stFor, setStFor] = useState<string | null>(null);
   const [stLines, setStLines] = useState<StatementLine[] | null>(null);
   const [stBalance, setStBalance] = useState("0");
+  const stPager = usePagination(stLines ?? [], 10);
 
   const load = useCallback(() => {
     authedApi<{ balances: BalanceRow[] }>("/api/small/balances/")
@@ -163,7 +164,7 @@ export default function SmallBoxesPage() {
                       <Table>
                         <THead><TR><TH>النوع</TH><TH>البيان</TH><TH>لنا</TH><TH>لكم</TH><TH>التاريخ</TH></TR></THead>
                         <TBody>
-                          {stLines.map((l) => (
+                          {stPager.slice.map((l) => (
                             <TR key={l.id}>
                               <TD>
                                 <Badge status={KIND_BADGE[l.kind] ?? "delivered"}>
@@ -181,6 +182,7 @@ export default function SmallBoxesPage() {
                         </TBody>
                       </Table>
                     )}
+                    <Pagination page={stPager.page} pages={stPager.pages} total={stPager.total} onChange={stPager.setPage} />
                   </div>
                 );
               })()

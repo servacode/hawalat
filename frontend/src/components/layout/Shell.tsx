@@ -83,8 +83,8 @@ export function Shell({
   return (
     <div className="flex min-h-screen gap-4 bg-bg p-3 md:p-4">
       <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-64 shrink-0 flex-col overflow-y-auto rounded-2xl border border-border bg-surface shadow-sm md:flex">
-        <div className="flex items-center gap-3 px-5 pb-4 pt-5">
-          <PlatformLogo className="size-12" />
+        <div className="flex flex-col items-center gap-2 border-b border-border px-5 pb-5 pt-6">
+          <PlatformLogo size="lg" />
           {subtitle && <p className="text-xs leading-tight text-muted">{subtitle}</p>}
         </div>
         <nav className="flex flex-1 flex-col gap-1.5 px-3 pt-2">

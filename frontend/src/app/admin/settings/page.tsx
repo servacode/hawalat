@@ -138,7 +138,7 @@ export default function SettingsPage() {
             // eslint-disable-next-line @next/next/no-img-element -- data URL محلي
             <img src={settings.logo} alt="لوغو المنصة" className="max-h-20 max-w-40 rounded-xl border border-border object-contain p-1" />
           ) : (
-            <PlatformLogo className="size-14" />
+            <PlatformLogo size="lg" />
           )}
           <div className="flex flex-wrap gap-2">
             <Button disabled={logoBusy} onClick={() => logoRef.current?.click()}>
