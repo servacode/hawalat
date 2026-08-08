@@ -321,8 +321,19 @@ class OfficeTransactionsViewSet(viewsets.ViewSet):
         txn = self._get(pk)
         if txn is None:
             return Response(status=404)
-        mark_delivered(txn, request.data.get("delivered", True))
-        audit(request, "mark_delivered", txn)
+        delivered = request.data.get("delivered", True)
+        mark_delivered(txn, delivered)
+        audit(request, "mark_delivered", txn, delivered=delivered)
+        # المكتب الصغير يجب أن يعرف أن حركة زبونه سُلّمت (ملاحظة التجربة 7)
+        if delivered and txn.created_by_id != request.user.id:
+            notify(
+                txn.created_by,
+                Notification.Type.TXN_DELIVERED,
+                f"سُلّمت حركتك {txn.reference_code}",
+                f"استلم المستفيد {txn.beneficiary} حوالته في {txn.destination}.",
+                entity="transaction",
+                entity_id=txn.id,
+            )
         return Response(TransactionSerializer(txn).data)
 
     @action(detail=True, methods=["post"])

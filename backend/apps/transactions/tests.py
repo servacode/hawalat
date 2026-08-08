@@ -272,6 +272,18 @@ class PaymentDeliveryTests(BaseTxnTestCase):
         res = self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
         self.assertEqual(res.data["delivery_status"], "delivered")
 
+    def test_delivered_notifies_small_office(self):
+        """ملاحظة التجربة 7: الصغير يعرف أن حركة زبونه سُلّمت."""
+        from apps.notifications.models import Notification
+
+        txn_id = self._accepted()
+        self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
+        notif = Notification.objects.filter(
+            recipient=self.small, ntype=Notification.Type.TXN_DELIVERED
+        ).first()
+        self.assertIsNotNone(notif)
+        self.assertIn("سُلّمت حركتك", notif.title)
+
 
 class ReverseEditTests(BaseTxnTestCase):
     def _accepted(self):
@@ -294,6 +306,34 @@ class ReverseEditTests(BaseTxnTestCase):
             self.assertEqual(get_small_office_account(self.small, "USD").balance, D("0"))
             self.assertEqual(get_box_account(self.box, "USD").balance, D("0"))
             self.assertEqual(get_shop_cash_account(self.tenant, "USD").balance, D("0"))
+
+
+class NoReverseAfterDeliveryTests(ReverseEditTests):
+    """ملاحظة التجربة 7: بعد التسليم لا عكس ولا تعديل — الزبون استلم المال فعلياً."""
+
+    def test_reverse_blocked_after_delivery(self):
+        txn_id = self._accepted()
+        self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
+        res = self.client.post(f"/api/office/transactions/{txn_id}/reverse/")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("تسليم", res.data["detail"])
+
+    def test_edit_blocked_after_delivery(self):
+        txn_id = self._accepted()
+        self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
+        res = self.client.post(
+            f"/api/office/transactions/{txn_id}/edit/", {"amount": "900"}, format="json"
+        )
+        self.assertEqual(res.status_code, 400)
+
+    def test_reverse_allowed_after_undo_delivery(self):
+        txn_id = self._accepted()
+        self.client.post(f"/api/office/transactions/{txn_id}/deliver/")
+        self.client.post(
+            f"/api/office/transactions/{txn_id}/deliver/", {"delivered": False}, format="json"
+        )
+        res = self.client.post(f"/api/office/transactions/{txn_id}/reverse/")
+        self.assertEqual(res.data["approval_status"], "reversed")
 
 
 class PermissionTests(BaseTxnTestCase):

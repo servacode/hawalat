@@ -77,10 +77,10 @@ export default function OfficeHistoryPage() {
     }
   }
 
-  async function act(t: Txn, action: "pay" | "deliver" | "reverse") {
+  async function act(t: Txn, action: "pay" | "deliver" | "reverse", body?: object) {
     setBusy(t.id);
     try {
-      await authedApi(`/api/office/transactions/${t.id}/${action}/`, { method: "POST" });
+      await authedApi(`/api/office/transactions/${t.id}/${action}/`, { method: "POST", body });
       load();
     } catch {
       /* الخطأ يظهر بإعادة التحميل */
@@ -141,19 +141,29 @@ export default function OfficeHistoryPage() {
                           <HandCoins className="size-4" />مدفوعة
                         </Button>
                       )}
-                      {t.delivery_status !== "delivered" && (
+                      {t.delivery_status !== "delivered" ? (
                         <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => act(t, "deliver")}>
                           <PackageCheck className="size-4" />تم التسليم
                         </Button>
-                      )}
-                      {t.payment_status !== "paid" && (
-                        <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
-                          <Pencil className="size-4" />تعديل
+                      ) : (
+                        // بعد التسليم لا عكس ولا تعديل — الزبون استلم المال؛ التراجع متاح لتصحيح خطأ التعليم فقط
+                        <Button size="sm" variant="ghost" disabled={busy === t.id}
+                          onClick={() => act(t, "deliver", { delivered: false })}>
+                          <Undo2 className="size-4" />تراجع عن التسليم
                         </Button>
                       )}
-                      <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
-                        <Undo2 className="size-4" />عكس
-                      </Button>
+                      {t.delivery_status !== "delivered" && (
+                        <>
+                          {t.payment_status !== "paid" && (
+                            <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => openEdit(t)}>
+                              <Pencil className="size-4" />تعديل
+                            </Button>
+                          )}
+                          <Button size="sm" variant="danger" disabled={busy === t.id} onClick={() => act(t, "reverse")}>
+                            <Undo2 className="size-4" />عكس
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </TD>

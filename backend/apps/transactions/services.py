@@ -245,6 +245,9 @@ def reverse_transaction(txn: Transaction, memo: str = "") -> Transaction:
     """عكس حركة مقبولة بالكامل (بديل الحذف §4-و): يعكس الدفع ثم القبول."""
     if txn.approval_status != Transaction.Approval.ACCEPTED:
         raise ValidationError("لا يُعكس إلا حركة مقبولة.")
+    # الزبون استلم المال فعلياً — لا رجعة بعد التسليم (ملاحظة التجربة 7)
+    if txn.delivery_status == Transaction.Delivery.DELIVERED:
+        raise ValidationError("لا يُعكس حركة تم تسليمها — تراجع عن التسليم أولاً إن كان عُلّم خطأً.")
     if txn.payment_entry_id:
         reverse_entry(txn.payment_entry, memo=f"عكس قبض {txn.reference_code}")
         txn.payment_status = Transaction.Payment.UNPAID
@@ -262,6 +265,8 @@ def edit_accepted_transaction(*, txn: Transaction, **new_values) -> Transaction:
     """
     if txn.approval_status != Transaction.Approval.ACCEPTED:
         raise ValidationError("التعديل المحاسبي متاح للحركات المقبولة فقط.")
+    if txn.delivery_status == Transaction.Delivery.DELIVERED:
+        raise ValidationError("لا تُعدَّل حركة تم تسليمها — تراجع عن التسليم أولاً إن كان عُلّم خطأً.")
     if txn.payment_entry_id:
         raise ValidationError("اعكس القبض أولاً قبل تعديل حركة مدفوعة.")
 

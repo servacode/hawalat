@@ -20,6 +20,7 @@ class Notification(TimeStampedModel):
         TXN_ACCEPTED = "txn_accepted", "قبول حركة"
         TXN_REJECTED = "txn_rejected", "رفض حركة"
         TXN_PAID = "txn_paid", "قبض حركة"
+        TXN_DELIVERED = "txn_delivered", "تسليم حركة"
         TXN_REVERSED = "txn_reversed", "عكس/تعديل حركة"
         SETTLEMENT = "settlement", "اعتماد/سحب"
         RECONCILIATION = "reconciliation", "مطابقة"
