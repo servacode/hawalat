@@ -69,13 +69,13 @@ const CURRENCY_FLAGS: Record<string, string> = {
 /** نص المطابقة (ملاحظة 41): الشكل الذي حدّده صاحب المشروع حرفياً. */
 export function buildReconciliationMessage(rows: ReconciliationRow[]): string {
   const sep = "•".repeat(34);
+  // الرصيد صفر لا يُذكر إطلاقاً (ملاحظة 42) — تظهر فقط عملات عليها رصيد فعلي
   const body = rows
-    .filter((r) => Number(r.balance) !== 0 || Number(r.debits) !== 0 || Number(r.credits) !== 0)
+    .filter((r) => Number(r.balance) !== 0)
     .map((r) => {
       const bal = Number(r.balance);
       const flag = CURRENCY_FLAGS[r.currency] ?? "💱";
-      const label =
-        bal > 0 ? `${formatMoney(bal)} لنا` : bal < 0 ? `${formatMoney(-bal)} لكم` : "متوازن ✅";
+      const label = bal > 0 ? `${formatMoney(bal)} لنا` : `${formatMoney(-bal)} لكم`;
       return `${flag} ${r.currency}: ${label}`;
     });
   return [
