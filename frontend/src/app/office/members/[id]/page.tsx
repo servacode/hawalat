@@ -114,7 +114,7 @@ export default function MemberProfilePage() {
 
   async function sendRecon() {
     if (!recon || !member) return;
-    const text = buildReconciliationMessage(recon.user, recon.office_code, recon.rows, recon.last_at);
+    const text = buildReconciliationMessage(recon.rows);
     try {
       await authedApi("/api/whatsapp/send/", { method: "POST", body: { text, member_id: member.id } });
       return;

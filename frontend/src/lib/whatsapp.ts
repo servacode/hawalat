@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/format";
+import { formatDateTime, formatMoney } from "@/lib/format";
 
 /**
  * حوالات — قالب رسالة الواتساب المركزي (الجزء 3-أ)
@@ -60,23 +60,32 @@ export interface ReconciliationRow {
   balance: string;
 }
 
-/** نص المطابقة (المشهد 4): رصيد سابق + حركات الفترة + الصافي لكل عملة. */
-export function buildReconciliationMessage(
-  officeName: string,
-  officeCode: string,
-  rows: ReconciliationRow[],
-  lastAt?: string | null,
-): string {
-  const lines = [`📊 مطابقة حساب — ${officeName} (${officeCode})`];
-  if (lastAt) lines.push(`منذ آخر مطابقة: ${new Date(lastAt).toLocaleString("en-GB")}`);
-  for (const r of rows) {
-    const bal = Number(r.balance);
-    const label =
-      bal > 0 ? `عليكم ${formatMoney(bal)}` : bal < 0 ? `لكم ${formatMoney(-bal)}` : "متوازن";
-    lines.push(
-      `— ${r.currency}: سابق ${formatMoney(r.previous)} · لكم ${formatMoney(r.credits)} · عليكم ${formatMoney(r.debits)} ⇐ ${label}`,
-    );
-  }
-  lines.push("(كشف دوري — لا يُصفّر الحسابات)");
-  return lines.join("\n");
+/** علم كل عملة في رسالة المطابقة — والافتراضي 💱 لغير المعروفة. */
+const CURRENCY_FLAGS: Record<string, string> = {
+  USD: "🇺🇸", EUR: "🇪🇺", TRY: "🇹🇷", SYP: "🇸🇾", SAR: "🇸🇦", AED: "🇦🇪",
+  KWD: "🇰🇼", QAR: "🇶🇦", JOD: "🇯🇴", EGP: "🇪🇬", GBP: "🇬🇧", IQD: "🇮🇶", LBP: "🇱🇧",
+};
+
+/** نص المطابقة (ملاحظة 41): الشكل الذي حدّده صاحب المشروع حرفياً. */
+export function buildReconciliationMessage(rows: ReconciliationRow[]): string {
+  const sep = "•".repeat(34);
+  const body = rows
+    .filter((r) => Number(r.balance) !== 0 || Number(r.debits) !== 0 || Number(r.credits) !== 0)
+    .map((r) => {
+      const bal = Number(r.balance);
+      const flag = CURRENCY_FLAGS[r.currency] ?? "💱";
+      const label =
+        bal > 0 ? `${formatMoney(bal)} لنا` : bal < 0 ? `${formatMoney(-bal)} لكم` : "متوازن ✅";
+      return `${flag} ${r.currency}: ${label}`;
+    });
+  return [
+    "🌟مطاااااااابقة🌟",
+    `    حتى تاريخ هذه اللحظة ${formatDateTime(new Date().toISOString())}`,
+    sep,
+    ...(body.length ? body : ["لا أرصدة بعد"]),
+    sep,
+    "     يرجى تأكيد المطابقة",
+    "",
+    "⌛️⌛️💎💎💎💎⏳⏳",
+  ].join("\n");
 }
