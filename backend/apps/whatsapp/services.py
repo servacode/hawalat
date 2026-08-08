@@ -91,7 +91,16 @@ def queue_message(*, to_user, text: str) -> WhatsAppMessage | None:
         msg.attempts = 1
         msg.last_error = str(exc)[:300]
         msg.save(update_fields=["attempts", "last_error"])
-        send_whatsapp_message.delay(msg.pk)
+        # إعادة المحاولة: في الاختبارات عبر Celery الفوري، وفي الإنتاج عبر
+        # خيط مضمون لا يعتمد على عامل خلفية (ملاحظة 49)
+        from django.conf import settings as dj_settings
+
+        if getattr(dj_settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            send_whatsapp_message.delay(msg.pk)
+        else:
+            from .tasks import retry_in_thread
+
+            retry_in_thread(msg.pk)
     else:
         msg.status = WhatsAppMessage.Status.SENT
         msg.sent_at = timezone.now()

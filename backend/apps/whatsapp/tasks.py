@@ -22,20 +22,23 @@ def waha_keepalive():
         pass
 
 
-@shared_task(bind=True, max_retries=MAX_ATTEMPTS - 1, default_retry_delay=10)
-def send_whatsapp_message(self, message_id: int):
+def deliver_once(message_id: int) -> bool:
+    """
+    محاولة تسليم واحدة (بلا Celery): True = انتهت (أُرسلت أو فشلت نهائياً)،
+    False = فشلت مؤقتاً وتستحق إعادة محاولة.
+    """
     from .models import WhatsAppMessage, WhatsAppSettings
     from .waha import WahaError, send_text
 
     msg = WhatsAppMessage.all_objects.filter(pk=message_id).first()
     if msg is None or msg.status == WhatsAppMessage.Status.SENT:
-        return
+        return True
     settings_obj = WhatsAppSettings.all_objects.filter(tenant=msg.tenant).first()
     if settings_obj is None or not settings_obj.is_ready:
         msg.status = WhatsAppMessage.Status.FAILED
         msg.last_error = "رقم الواتساب غير مربوط."
         msg.save(update_fields=["status", "last_error"])
-        return
+        return True
 
     msg.attempts += 1
     try:
@@ -45,10 +48,38 @@ def send_whatsapp_message(self, message_id: int):
         if msg.attempts >= MAX_ATTEMPTS:
             msg.status = WhatsAppMessage.Status.FAILED
             msg.save(update_fields=["attempts", "last_error", "status"])
-            return
+            return True
         msg.save(update_fields=["attempts", "last_error"])
-        raise self.retry(exc=exc) from exc
+        return False
     msg.status = WhatsAppMessage.Status.SENT
     msg.sent_at = timezone.now()
     msg.last_error = ""
     msg.save(update_fields=["attempts", "status", "sent_at", "last_error"])
+    return True
+
+
+def retry_in_thread(message_id: int):
+    """
+    إعادة محاولة مضمونة بلا أي بنية خلفية (ملاحظة 49): خيط بسيط يعيد
+    التسليم بعد 45 ثم 60 ثانية — تكفي «صحوة» الخادم المجاني النائم.
+    (deliver_once تتجاهل الرسالة إن كانت أُرسلت — فلا ازدواج مع Celery.)
+    """
+    import threading
+    import time
+
+    def _run():
+        for delay in (45, 60):
+            time.sleep(delay)
+            if deliver_once(message_id):
+                return
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+@shared_task(bind=True, max_retries=MAX_ATTEMPTS - 1, default_retry_delay=30)
+def send_whatsapp_message(self, message_id: int):
+    from .models import WhatsAppMessage
+
+    if not deliver_once(message_id):
+        msg = WhatsAppMessage.all_objects.filter(pk=message_id).first()
+        raise self.retry(exc=Exception(msg.last_error if msg else "فشل الإرسال"))
