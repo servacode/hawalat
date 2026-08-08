@@ -3,11 +3,11 @@
  * كل عرض لمبلغ/تاريخ في النظام يمرّ من هنا حصراً — لا تنسيق يدوي في الصفحات.
  */
 
-/** تنسيق مبلغ مالي: فواصل آلاف + منزلتان + إشارة واضحة */
+/** تنسيق مبلغ مالي: فواصل آلاف + كسور فقط عند الحاجة (بلا أصفار زائدة) + إشارة واضحة */
 export function formatMoney(value: number | string, currency?: string): string {
   const n = typeof value === "string" ? Number(value) : value;
   const formatted = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(Math.abs(n));
   const sign = n < 0 ? "−" : "";

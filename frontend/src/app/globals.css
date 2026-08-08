@@ -159,3 +159,14 @@ body {
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* حقول المبالغ: أسهم الزيادة/الإنقاص لا معنى لها مالياً — تُخفى مركزياً */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
