@@ -133,6 +133,31 @@ class SettingsTests(BaseWaTestCase):
         self.small.save(update_fields=["whatsapp_chat_id", "phone"])
         self.assertEqual(chat_id_for(self.small), "905395930640@c.us")
 
+    @patch("apps.whatsapp.waha.requests.request")
+    def test_group_link_resolves_to_group_chat_id(self, mock_req):
+        """رابط المجموعة يُستنتج منه معرّفها ويُخزَّن — فتصل الرسالة للمجموعة (ملاحظة 46)."""
+        self.link_number()
+        self.small.whatsapp_chat_id = ""
+        self.small.whatsapp_group_link = "https://chat.whatsapp.com/CmJivBMZcig?s=cl"
+        self.small.phone = "+905395930640"
+        self.small.save(update_fields=["whatsapp_chat_id", "whatsapp_group_link", "phone"])
+
+        def side_effect(method, urlpath, **kwargs):
+            if "groups/join-info" in urlpath:
+                self.assertIn("code=CmJivBMZcig", urlpath)
+                return FakeResponse(json_data={"id": "120363000111222333@g.us", "subject": "الحسكة"})
+            return FakeResponse()
+
+        mock_req.side_effect = side_effect
+        self.auth("aleppo")
+        res = self.client.post("/api/whatsapp/send/", {"text": "مطابقة"}, format="json")
+        self.assertEqual(res.status_code, 202)
+        msg = WhatsAppMessage.all_objects.get()
+        self.assertEqual(msg.chat_id, "120363000111222333@g.us")
+        # المعرّف تخزّن — لا استنتاج مرة أخرى
+        self.small.refresh_from_db()
+        self.assertEqual(self.small.whatsapp_chat_id, "120363000111222333@g.us")
+
 
 class SendTests(BaseWaTestCase):
     def test_manual_mode_returns_409(self):

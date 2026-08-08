@@ -11,12 +11,41 @@ def get_settings(tenant) -> WhatsAppSettings:
     return obj
 
 
-def chat_id_for(user) -> str:
-    """وجهة الإرسال للعضو: مجموعته إن ضُبطت، وإلا رقم هاتفه مباشرة (ملاحظة 44)."""
-    if user.whatsapp_chat_id:
-        return user.whatsapp_chat_id
+def _phone_chat_id(user) -> str:
     digits = re.sub(r"\D", "", user.phone or "")
     return f"{digits}@c.us" if digits else ""
+
+
+def chat_id_for(user) -> str:
+    """وجهة الإرسال للعضو (بلا شبكة): المعرّف المخزَّن، وإلا رقم هاتفه."""
+    return user.whatsapp_chat_id or _phone_chat_id(user)
+
+
+def _resolve_group_chat_id(to_user) -> str:
+    """
+    يستنتج معرّف المجموعة من رابط الدعوة عبر الخادم (ملاحظة 46) — والنتيجة
+    تُخزَّن على العضو فلا يُسأل الخادم مرة أخرى. يشترط أن يكون الرقم
+    المربوط عضواً في المجموعة ليستطيع الإرسال فيها.
+    """
+    match = re.search(r"chat\.whatsapp\.com/([A-Za-z0-9]+)", to_user.whatsapp_group_link or "")
+    if not match:
+        return ""
+    from . import waha
+
+    try:
+        data = waha.group_join_info(to_user.tenant, match.group(1))
+    except waha.WahaError:
+        return ""
+    gid = data.get("id", "")
+    if isinstance(gid, dict):  # محرك WEBJS يعيد {id: {_serialized: "...@g.us"}}
+        gid = gid.get("_serialized", "")
+    gid = str(gid or "")
+    if gid and "@" not in gid:
+        gid = f"{gid}@g.us"
+    if gid:
+        to_user.whatsapp_chat_id = gid
+        to_user.save(update_fields=["whatsapp_chat_id"])
+    return gid
 
 
 def bot_status(user) -> dict:
@@ -24,7 +53,9 @@ def bot_status(user) -> dict:
     s = get_settings(user.tenant)
     return {
         "bot_enabled": s.is_ready,
-        "chat_configured": bool(chat_id_for(user)),
+        "chat_configured": bool(
+            user.whatsapp_chat_id or user.whatsapp_group_link or _phone_chat_id(user)
+        ),
     }
 
 
@@ -32,10 +63,15 @@ def queue_message(*, to_user, text: str) -> WhatsAppMessage | None:
     """
     يُدرج رسالة في الصادر ويطلق مهمة الإرسال — أو يعيد None إذا كان
     الوضع يدوياً (الرقم غير مربوط / لا وجهة للعضو).
+    الوجهة بالأولوية: مجموعة العضو (معرّف مخزَّن أو مستنتَج من رابطها) ثم هاتفه.
     """
     s = get_settings(to_user.tenant)
-    chat_id = chat_id_for(to_user)
-    if not s.is_ready or not chat_id:
+    if not s.is_ready:
+        return None
+    chat_id = (
+        to_user.whatsapp_chat_id or _resolve_group_chat_id(to_user) or _phone_chat_id(to_user)
+    )
+    if not chat_id:
         return None
     msg = WhatsAppMessage.all_objects.create(
         tenant=to_user.tenant,

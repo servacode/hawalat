@@ -78,6 +78,16 @@ def logout(tenant):
         _request("DELETE", f"/api/sessions/{name}", ok404=True)
 
 
+def group_join_info(tenant, invite_code: str) -> dict:
+    """معلومات مجموعة من كود الدعوة — لاستنتاج معرّفها من رابط المجموعة (ملاحظة 46)."""
+    response = _request(
+        "GET",
+        f"/api/{session_name(tenant)}/groups/join-info?code={invite_code}",
+        timeout=20,
+    )
+    return response.json() if response is not None else {}
+
+
 def send_text(tenant, chat_id: str, text: str):
     _request(
         "POST",
