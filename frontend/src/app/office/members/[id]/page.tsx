@@ -335,6 +335,41 @@ export default function MemberProfilePage() {
         </Card>
       </div>
 
+      {/* سجل المطابقات المثبّتة */}
+      <Card>
+        <CardHeader><CardTitle>سجل المطابقات المثبّتة</CardTitle></CardHeader>
+        <CardBody className="flex flex-col gap-3">
+          {!history ? (
+            <Skeleton className="h-24" />
+          ) : history.length === 0 ? (
+            <p className="text-sm text-muted">لا مطابقات مثبّتة بعد — «إرسال مطابقة» أعلاه ينشئ أول سجل.</p>
+          ) : (
+            <Table>
+              <THead>
+                <TR><TH>التاريخ</TH><TH>ثبّتها</TH><TH>الأرصدة المثبّتة</TH><TH>ملف</TH></TR>
+              </THead>
+              <TBody>
+                {history.map((r) => (
+                  <TR key={r.id}>
+                    <TD className="tnum text-sm">{formatDateTime(r.at)}</TD>
+                    <TD>{r.by}</TD>
+                    <TD className="tnum text-sm">
+                      {r.rows.map((row) => `${row.currency} ${formatMoney(row.balance)}`).join(" · ") || "—"}
+                    </TD>
+                    <TD>
+                      <Button size="sm" variant="ghost"
+                        onClick={() => authedDownload(`/api/office/members/${memberId}/reconciliations/${r.id}/pdf/`, `مطابقة-${member.office_code}-${r.id}.pdf`)}>
+                        <FileText className="size-4" />PDF
+                      </Button>
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          )}
+        </CardBody>
+      </Card>
+
       {/* كشف الحساب بالعملة */}
       <Card>
         <CardHeader><CardTitle>كشف الحساب</CardTitle></CardHeader>
@@ -371,41 +406,6 @@ export default function MemberProfilePage() {
               </Table>
               <Pagination page={stPager.page} pages={stPager.pages} total={stPager.total} onChange={stPager.setPage} />
             </>
-          )}
-        </CardBody>
-      </Card>
-
-      {/* سجل المطابقات المثبّتة */}
-      <Card>
-        <CardHeader><CardTitle>سجل المطابقات المثبّتة</CardTitle></CardHeader>
-        <CardBody className="flex flex-col gap-3">
-          {!history ? (
-            <Skeleton className="h-24" />
-          ) : history.length === 0 ? (
-            <p className="text-sm text-muted">لا مطابقات مثبّتة بعد — «إرسال مطابقة» أعلاه ينشئ أول سجل.</p>
-          ) : (
-            <Table>
-              <THead>
-                <TR><TH>التاريخ</TH><TH>ثبّتها</TH><TH>الأرصدة المثبّتة</TH><TH>ملف</TH></TR>
-              </THead>
-              <TBody>
-                {history.map((r) => (
-                  <TR key={r.id}>
-                    <TD className="tnum text-sm">{formatDateTime(r.at)}</TD>
-                    <TD>{r.by}</TD>
-                    <TD className="tnum text-sm">
-                      {r.rows.map((row) => `${row.currency} ${formatMoney(row.balance)}`).join(" · ") || "—"}
-                    </TD>
-                    <TD>
-                      <Button size="sm" variant="ghost"
-                        onClick={() => authedDownload(`/api/office/members/${memberId}/reconciliations/${r.id}/pdf/`, `مطابقة-${member.office_code}-${r.id}.pdf`)}>
-                        <FileText className="size-4" />PDF
-                      </Button>
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
           )}
         </CardBody>
       </Card>
