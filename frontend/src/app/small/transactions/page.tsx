@@ -5,6 +5,7 @@
 import { CalendarDays, CircleCheck, CircleX, Coins, FileSpreadsheet, FileText, HandCoins, Hourglass, MapPin, PackageCheck, RefreshCw, Undo2, UserCheck, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Pagination, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
+import { DoneCheck } from "@/components/transactions/DoneCheck";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
 import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi, authedDownload } from "@/lib/authedApi";
@@ -120,7 +121,8 @@ export default function MyTransactionsPage() {
           <THead>
             <TR>
               <TH>المرجع</TH><TH>التاريخ</TH><TH>المرسِل</TH><TH>المستفيد</TH>
-              <TH>المبلغ</TH><TH>الأجور</TH><TH>الوجهة</TH><TH>القبول</TH><TH>الدفع</TH><TH>التسليم</TH>
+              <TH>المبلغ</TH><TH>الأجور</TH><TH>الوجهة</TH><TH>القبول</TH>
+              <TH className="text-center">مدفوعة</TH><TH className="text-center">التسليم</TH>
             </TR>
           </THead>
           <TBody>
@@ -134,8 +136,8 @@ export default function MyTransactionsPage() {
                 <TD className="tnum">{t.fee_charged ? formatMoney(t.fee_charged, t.currency_received) : "—"}</TD>
                 <TD>{t.destination}</TD>
                 <TD><Badge status={approvalBadge[t.approval_status]} /></TD>
-                <TD>{t.payment_status === "paid" ? <Badge status="paid" /> : <span className="text-muted">—</span>}</TD>
-                <TD>{t.delivery_status === "delivered" ? <Badge status="delivered" /> : <span className="text-muted">—</span>}</TD>
+                <TD><DoneCheck done={t.payment_status === "paid"} label="مدفوعة" /></TD>
+                <TD><DoneCheck done={t.delivery_status === "delivered"} label="تم التسليم" /></TD>
               </TR>
             ))}
           </TBody>

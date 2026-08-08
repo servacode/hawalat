@@ -6,6 +6,7 @@ import { Building2, CalendarDays, Check, CircleCheck, CircleX, Coins, FileSpread
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Pagination, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, usePagination, useViewMode, type BadgeStatus } from "@/components/ui";
 import { StatusFilterCards, type StatusCardDef } from "@/components/transactions/StatusFilterCards";
+import { DoneCheck } from "@/components/transactions/DoneCheck";
 import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi, authedDownload } from "@/lib/authedApi";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -225,7 +226,9 @@ export default function OfficeHistoryPage() {
           <THead>
             <TR>
               <TH>المرجع</TH><TH>من مكتب</TH><TH>المستفيد</TH><TH>المبلغ</TH>
-              <TH>الأجور</TH><TH>الصندوق</TH><TH>الحالة</TH><TH>إجراءات</TH>
+              <TH>الأجور</TH><TH>الصندوق</TH><TH>الحالة</TH>
+              <TH className="text-center">مدفوعة</TH><TH className="text-center">التسليم</TH>
+              <TH>إجراءات</TH>
             </TR>
           </THead>
           <TBody>
@@ -242,13 +245,9 @@ export default function OfficeHistoryPage() {
                   {t.fee_cost ? `${formatMoney(t.fee_cost)} / ${formatMoney(t.fee_charged ?? 0)} ${t.currency_received}` : "—"}
                 </TD>
                 <TD className="whitespace-nowrap">{t.box_name ?? "—"}</TD>
-                <TD>
-                  <span className="flex flex-wrap items-center gap-1">
-                    <Badge status={approvalBadge[t.approval_status]} />
-                    {t.payment_status === "paid" && <Badge status="paid" />}
-                    {t.delivery_status === "delivered" && <Badge status="delivered" />}
-                  </span>
-                </TD>
+                <TD><Badge status={approvalBadge[t.approval_status]} /></TD>
+                <TD><DoneCheck done={t.payment_status === "paid"} label="مدفوعة" /></TD>
+                <TD><DoneCheck done={t.delivery_status === "delivered"} label="تم التسليم" /></TD>
                 <TD>{rowActions(t, true)}</TD>
               </TR>
             ))}
