@@ -6,9 +6,10 @@
  * الأجور المستحقة + سعر الصرف (إن اختلفت العملتان — إلزامي) → قبول/رفض.
  */
 
-import { Check, ClipboardCheck, X } from "lucide-react";
+import { Building2, CalendarDays, Check, ClipboardCheck, MapPin, UserCheck, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table } from "@/components/ui";
+import { Badge, Button, Card, CardBody, EmptyState, Input, Modal, Select, Skeleton, TBody, TD, TH, THead, TR, Table, ViewToggle, useViewMode } from "@/components/ui";
+import { TxnField } from "@/components/transactions/TxnField";
 import { authedApi } from "@/lib/authedApi";
 import { onWsEvent } from "@/lib/ws";
 import { formatDateTime, formatMoney } from "@/lib/format";
@@ -28,6 +29,7 @@ export default function PendingPage() {
   const [form, setForm] = useState({ box: "", fee_cost: "", fee_charged: "", exchange_rate: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useViewMode();
 
   const load = useCallback(() => {
     authedApi<Txn[]>("/api/office/transactions/pending/").then(setTxns).catch(() => {});
@@ -85,10 +87,41 @@ export default function PendingPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <ViewToggle mode={view} onChange={setView} />
+      </div>
       {!txns ? (
         <Skeleton className="h-64" />
       ) : txns.length === 0 ? (
         <EmptyState title="لا حركات قيد الانتظار" description="عند وصول حركة جديدة ستظهر هنا فوراً." />
+      ) : view === "cards" ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {txns.map((t) => (
+            <Card key={t.id}>
+              <CardBody className="flex flex-col gap-2.5 py-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Badge status="pending" />
+                  <span dir="ltr" className="tnum ms-auto text-sm text-muted">{t.reference_code}</span>
+                </div>
+                <p className="tnum text-xl font-bold">{formatMoney(t.amount, t.currency_received)}</p>
+                <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/30">
+                  <TxnField icon={Building2} label="من مكتب" value={t.created_by_name} />
+                  {t.sender && <TxnField icon={UserRound} label="المرسِل" value={t.sender} />}
+                  <TxnField icon={UserCheck} label="المستفيد" value={t.beneficiary} />
+                  <TxnField icon={MapPin} label="الوجهة" value={t.destination} />
+                  {t.currency_delivered !== t.currency_received && (
+                    <TxnField icon={CalendarDays} label="التسليم بعملة" value={t.currency_delivered} />
+                  )}
+                  <TxnField icon={CalendarDays} label="الوقت"
+                    value={<span className="tnum">{formatDateTime(t.created_at)}</span>} />
+                </div>
+                <Button onClick={() => openProcess(t)}>
+                  <ClipboardCheck className="size-4" />معالجة
+                </Button>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Table>
           <THead>
