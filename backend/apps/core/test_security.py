@@ -30,7 +30,6 @@ PROTECTED_GET = [
     "/api/office/reports/types/",
     "/api/office/whatsapp/",
     "/api/small/balances/",
-    "/api/small/reports/types/",
     "/api/admin/stats/",
 ]
 

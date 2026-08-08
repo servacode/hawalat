@@ -89,32 +89,20 @@ class ProfitReportTests(BaseReportsTestCase):
 
 
 class ScopeTests(BaseReportsTestCase):
-    def test_small_sees_only_allowed_types(self):
+    def test_small_reports_removed_entirely(self):
+        """ملاحظة التجربة 11: لا قسم تقارير للمكتب الصغير إطلاقاً."""
         self.auth("aleppo")
-        res = self.client.get("/api/small/reports/types/")
-        types = [t["type"] for t in res.data]
-        self.assertIn("summary", types)
-        self.assertNotIn("profits", types)  # الأرباح للكبير فقط
-
-    def test_small_denied_big_report(self):
-        self.auth("aleppo")
-        res = self.client.get("/api/small/reports/?type=profits")
-        self.assertEqual(res.status_code, 403)
-
-    def test_small_activity_scoped_to_self(self):
-        self.make_accepted()
-        create_small_office(tenant=self.tenant, name="آخر", username="other2", password=PASSWORD)
-        self.auth("aleppo")
-        res = self.client.get("/api/small/reports/?type=activity")
-        self.assertEqual(D(res.data["rows"][0][1]), D("1"))
+        self.assertEqual(self.client.get("/api/small/reports/").status_code, 404)
+        self.assertEqual(self.client.get("/api/small/reports/types/").status_code, 404)
+        # وتقارير المكتب الكبير ليست له
+        self.assertEqual(self.client.get("/api/office/reports/types/").status_code, 403)
 
     def test_big_cannot_use_small_scope(self):
+        """مسار تقارير الصغير أُزيل كلياً — 404 حتى للكبير."""
         self.auth("damascus")
-        res = self.client.get("/api/small/reports/?type=summary")
-        self.assertEqual(res.status_code, 403)
+        res = self.client.get("/api/small/reports/?type=activity")
+        self.assertEqual(res.status_code, 404)
 
-
-class ExportTests(BaseReportsTestCase):
     def test_xlsx_export(self):
         self.make_accepted()
         self.auth("damascus")

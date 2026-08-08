@@ -10,11 +10,5 @@ urlpatterns = [
         {"scope": "office"},
         name="office-report-types",
     ),
-    path("small/reports/", ReportView.as_view(), {"scope": "small"}, name="small-reports"),
-    path(
-        "small/reports/types/",
-        ReportTypesView.as_view(),
-        {"scope": "small"},
-        name="small-report-types",
-    ),
+    # تقارير الصغير أُلغيت (ملاحظة التجربة 11): الصغير يدير نفسه من صناديقه وكشوفه
 ]
